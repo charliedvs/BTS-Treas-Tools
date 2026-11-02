@@ -613,63 +613,51 @@
       background-color: var(--surface);
       border: 1px solid var(--border-color);
       width: 100%;
-      max-width: 440px;
-      padding: 36px 30px;
+      max-width: 380px;
+      padding: 38px 30px;
       box-shadow: var(--modal-shadow);
       text-align: center;
     }
 
-    .login-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 600;
-      padding: 3px 8px;
-      border: 1px solid var(--border-color);
-      background-color: var(--surface-light);
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
     .login-title {
-      font-size: 1.6rem;
-      font-weight: 700;
+      font-size: 1.5rem;
+      font-weight: 600;
       letter-spacing: -0.02em;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .login-subtitle {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
       margin-bottom: 24px;
-    }
-
-    .login-desc {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 18px;
-      text-align: left;
-    }
-
-    .login-lock-banner {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.82rem;
-      padding: 10px 12px;
-      background-color: var(--surface-light);
-      border: 1px solid var(--border-color);
-      margin-bottom: 20px;
-      text-align: left;
     }
 
     .g-signin-container {
       display: flex;
       justify-content: center;
-      margin-bottom: 16px;
-      min-height: 44px;
+      width: 100%;
+    }
+
+    .login-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 11px 16px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      background-color: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .login-btn:hover {
+      background-color: var(--surface-light);
+      border-color: var(--border-focus);
     }
 
     .auth-error-message {
@@ -791,27 +779,27 @@
   <!-- Google Sign-In & Gatekeeper Overlay -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
-      <span class="login-badge">Society Access Only</span>
       <h1 class="login-title">TreasTrack</h1>
-      <p class="login-subtitle">BTS Bath Society Treasurer Management</p>
-
-      <div class="login-lock-banner">
-        <span style="font-size: 1.25rem;">🔒</span>
-        <div>
-          <strong>treas@bts-crew.com</strong>
-          <div style="color: var(--text-muted); font-size: 0.78rem;">Site access is restricted strictly to the society treasurer account.</div>
-        </div>
-      </div>
+      <p class="login-subtitle">Sign in to your account</p>
 
       <!-- Google Identity Services Container -->
-      <div id="gSignInBtn" class="g-signin-container"></div>
+      <div id="gSignInBtn" class="g-signin-container">
+        <button type="button" id="googleCustomSignInBtn" class="login-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Sign in with Google</span>
+        </button>
+      </div>
 
       <!-- Error / Access Denied Notification -->
       <div id="loginErrorMsg" class="auth-error-message" style="display: none;"></div>
 
-      <div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--text-muted);">
-        <button type="button" id="configClientIdBtn" class="btn-link" title="Configure Google Cloud OAuth Client ID">OAuth Client ID</button>
-        <button type="button" id="devSignInBtn" class="btn-link" title="Sign in immediately for local testing / offline">Dev / Local Sign In</button>
+      <div id="devSignInContainer" style="display: none; margin-top: 18px; text-align: center;">
+        <button type="button" id="devSignInBtn" class="btn-link" style="color: var(--text-muted); font-size: 0.76rem;" title="Sign in immediately for local testing / offline">Dev / Local Sign In</button>
       </div>
     </div>
   </div>
@@ -2796,6 +2784,7 @@
     const userPillEmail = document.getElementById('userPillEmail');
     const signOutBtn = document.getElementById('signOutBtn');
     const devSignInBtn = document.getElementById('devSignInBtn');
+    const devSignInContainer = document.getElementById('devSignInContainer');
     const configClientIdBtn = document.getElementById('configClientIdBtn');
     const clientIdModalBackdrop = document.getElementById('clientIdModalBackdrop');
     const closeClientIdModalBtn = document.getElementById('closeClientIdModalBtn');
@@ -2954,6 +2943,9 @@
 
     // Dev sign-in is strictly restricted to local testing/offline (localhost or file://)
     const isLocalOffline = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
+    if (devSignInContainer) {
+      devSignInContainer.style.display = isLocalOffline ? 'block' : 'none';
+    }
     if (!isLocalOffline && devSignInBtn) {
       devSignInBtn.style.display = 'none';
     }
@@ -3044,14 +3036,14 @@
             });
           }
 
-          // 3. Render reliable custom Google Sign-In button
+          // 3. Render clean professional Google Sign-In button
           gSignInBtn.innerHTML = `
-            <button type="button" id="googleCustomSignInBtn" class="btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; max-width: 320px; padding: 11px 18px; font-size: 0.92rem; font-weight: 600; border-radius: 4px; background: var(--surface); color: var(--text-main); border: 1px solid var(--border-color); cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.15s ease, border-color 0.15s ease;">
-              <svg width="18" height="18" viewBox="0 0 18 18">
-                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
-                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-                <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/>
-                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+            <button type="button" id="googleCustomSignInBtn" class="login-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
               <span>Sign in with Google</span>
             </button>
@@ -3067,7 +3059,14 @@
       }
     }
 
-    configClientIdBtn.addEventListener('click', openClientIdModal);
+    const initialGoogleBtn = document.getElementById('googleCustomSignInBtn');
+    if (initialGoogleBtn) {
+      initialGoogleBtn.addEventListener('click', triggerGoogleSignIn);
+    }
+
+    if (configClientIdBtn) {
+      configClientIdBtn.addEventListener('click', openClientIdModal);
+    }
     closeClientIdModalBtn.addEventListener('click', closeClientIdModal);
     cancelClientIdBtn.addEventListener('click', closeClientIdModal);
     clientIdModalBackdrop.addEventListener('click', (e) => {
