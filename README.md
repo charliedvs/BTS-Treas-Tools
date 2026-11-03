@@ -1,4 +1,4 @@
-# TreasTrack 🎭
+# BTS Treas Tools 🎭
 
 > **Backstage Technical Services (BTS Bath)**  
 > Purpose-built event finance tracking, automated Blue Form generation, and society treasurer handover management.
@@ -7,12 +7,12 @@
 
 ## 📋 Overview
 
-TreasTrack is an offline-capable, serverless web application designed specifically for the Backstage Technical Services Treasurer. It streamlines society billing, financial entry management, and year-to-year handover without requiring complex databases or recurring server costs.
+BTS Treas Tools is an offline-capable, serverless web application designed specifically for the Backstage Technical Services Treasurer. It streamlines society billing, financial entry management, and year-to-year handover without requiring complex databases or recurring server costs.
 
 ### Key Capabilities
 
-- **Event & Finance Tracking**: Record society events, charges, start/end dates, and tracking checkboxes (*Finance entry created*, *Invoice drafted*, *Invoice sent*).
-- **Automated Blue Form Generation**: Merges event details directly into the official BTS Blue Form PDF using `pdf-lib`.
+- **Event & Finance Tracking**: Record society events, charges, start/end dates, and tracking checkboxes (*Invoice sent*).
+- **Automated Blue Form & Invoice Generation**: Merges event details directly into official BTS Blue Form and Invoice PDFs using `pdf-lib`.
 - **Built-in Bath Societies Registry**: Preloaded with 142 University of Bath societies and department account codes. Automatically flags unlisted external clients (in red) and disables the Blue Form button when forms are not required.
 - **Google Workspace Automation**: Optional one-click Google Drive event folder creation and Gmail invoice draft composition using Google Apps Script.
 - **Google Sign-In Access Gatekeeper**: Restricts access strictly to the official society treasurer Google account (`treas@bts-crew.com`). Any unauthorized Google accounts are denied access.
@@ -22,7 +22,7 @@ TreasTrack is an offline-capable, serverless web application designed specifical
 
 ## 🚀 Deployment via GitHub Pages
 
-TreasTrack runs entirely client-side, making it free and zero-maintenance to host on **GitHub Pages**:
+BTS Treas Tools runs entirely client-side, making it free and zero-maintenance to host on **GitHub Pages**:
 
 1. **Push to GitHub**:
    ```bash
@@ -40,13 +40,13 @@ TreasTrack runs entirely client-side, making it free and zero-maintenance to hos
 
 ## 🔐 Google Authentication Setup (`treas@bts-crew.com`)
 
-TreasTrack uses Google Identity Services (GIS) to ensure only the holder of `treas@bts-crew.com` can access the application:
+BTS Treas Tools uses Google Identity Services (GIS) to ensure only the holder of `treas@bts-crew.com` can access the application:
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) while signed in as `treas@bts-crew.com`.
-2. Create or select a project (e.g. *BTS TreasTrack*).
+2. Create or select a project (e.g. *BTS Treas Tools*).
 3. Under **APIs & Services $\rightarrow$ OAuth consent screen**:
    - Set User Type to **External** (or Internal if Google Workspace organization).
-   - Enter App Name (*TreasTrack*) and developer contact email (`treas@bts-crew.com`).
+   - Enter App Name (*BTS Treas Tools*) and developer contact email (`treas@bts-crew.com`).
 4. Under **APIs & Services $\rightarrow$ Credentials**:
    - Click **Create Credentials** $\rightarrow$ **OAuth client ID**.
    - Select Application type: **Web application**.
@@ -54,9 +54,6 @@ TreasTrack uses Google Identity Services (GIS) to ensure only the holder of `tre
      - Your GitHub Pages URL (e.g. `https://<username>.github.io`)
      - `http://localhost` (for local testing)
    - Click **Create** and copy the Client ID (ends with `.apps.googleusercontent.com`).
-5. Open TreasTrack $\rightarrow$ Click **OAuth Client ID** on the login screen $\rightarrow$ Paste your Client ID and save.
-
-> **Offline / Local Testing**: Click the **Dev / Local Sign In** button to test the interface locally without an active Google OAuth configuration.
 
 ---
 
@@ -71,13 +68,13 @@ To enable automatic Google Drive folder creation and Gmail draft generation:
    - Execute as: **Me (treas@bts-crew.com)**
    - Who has access: **Anyone**
 4. Copy the deployment URL (must end in `/exec`).
-5. In TreasTrack, click **Google Setup** in the top bar, paste the web app URL, and optionally provide a parent Google Drive folder link or ID.
+5. In BTS Treas Tools, click **Settings** (top left cog), paste the web app URL, and optionally provide a parent Google Drive folder link or ID.
 
 ---
 
 ## 🔄 Treasurer Handover & Archiving (1st August)
 
 The BTS financial year runs **1st August to 31st July**:
-- **Automatic Rollover**: When TreasTrack is opened on or after 1st August, events from the previous financial year are automatically moved to historical archives, and the active workspace is cleared for the incoming treasurer.
+- **Automatic Rollover**: When BTS Treas Tools is opened on or after 1st August, events from the previous financial year are automatically moved to historical archives, and the active workspace is cleared for the incoming treasurer.
 - **Manual Handover**: Click the academic year badge in the header (e.g., `2026–2027 ▾`) to view active totals, download a JSON backup, view past archives, or trigger handover manually at any time.
 - **Data Safety**: Template PDFs, society mappings, and settings are preserved across rollovers.

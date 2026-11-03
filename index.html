@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TreasTrack</title>
+  <title>BTS Treas Tools</title>
   <!-- PDF-Lib for editing and filling PDF forms (with Subresource Integrity) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
   <!-- PDF.js for reading text & coordinates from uploaded PDFs (with Subresource Integrity) -->
@@ -779,7 +779,7 @@
   <!-- Google Sign-In & Gatekeeper Overlay -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
-      <h1 class="login-title">TreasTrack</h1>
+      <h1 class="login-title">BTS Treas Tools</h1>
       <p class="login-subtitle">Sign in to your account</p>
 
       <!-- Google Identity Services Container -->
@@ -815,13 +815,13 @@
       </button>
       <div id="userPillContainer" class="user-pill" title="Signed in as BTS Treasurer">
         <span id="userPillEmail">treas@bts-crew.com</span>
-        <button type="button" id="signOutBtn" class="btn-logout" title="Sign out of TreasTrack">Sign Out</button>
+        <button type="button" id="signOutBtn" class="btn-logout" title="Sign out of BTS Treas Tools">Sign Out</button>
       </div>
     </div>
 
     <div class="container">
       <header>
-        <h1>TreasTrack</h1>
+        <h1>BTS Treas Tools</h1>
         <div class="header-actions">
           <button id="openModalBtn" class="btn-primary">Add Event</button>
         </div>
@@ -2879,7 +2879,7 @@
           <div style="font-weight: 600; margin-bottom: 4px;">Access Denied</div>
           <div style="font-size: 0.82rem; margin-bottom: 10px; line-height: 1.4;">
             Signed in as <strong>${escapeHtml(userData.email)}</strong>.<br>
-            TreasTrack is strictly restricted to <strong>${escapeHtml(AUTHORIZED_EMAIL)}</strong>.
+            BTS Treas Tools is strictly restricted to <strong>${escapeHtml(AUTHORIZED_EMAIL)}</strong>.
           </div>
           <button type="button" id="switchGoogleAccountBtn" class="btn-primary btn-sm" style="font-size: 0.8rem; padding: 6px 14px; cursor: pointer;">
             Switch to ${escapeHtml(AUTHORIZED_EMAIL)}

@@ -1,5 +1,5 @@
 /**
- * TreasTrack — Google Drive & Gmail Automation Script
+ * BTS Treas Tools — Google Drive & Gmail Automation Script
  *
  * SETUP INSTRUCTIONS:
  * 1. Go to https://script.google.com and open your project.
@@ -12,7 +12,7 @@
  *    - Type: "Web app"
  *    - Execute as: "Me"
  *    - Who has access: "Anyone"
- * 6. Copy the Web app URL (ending in /exec) and paste it into "Google Setup" in TreasTrack.
+ * 6. Copy the Web app URL (ending in /exec) and paste it into "Google Setup" in BTS Treas Tools.
  */
 
 function doGet(e) {
@@ -24,7 +24,7 @@ function doGet(e) {
     var sig = getGmailSignatureHtml();
 
     var statusText = [
-      '✓ TreasTrack Google Apps Script is active and authorized!',
+      '✓ BTS Treas Tools Google Apps Script is active and authorized!',
       '',
       '• Google Drive connected (Root folder: ' + rootName + ')',
       '• Gmail connected (Current drafts: ' + draftsCount + ')',
