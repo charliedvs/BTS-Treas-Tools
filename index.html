@@ -100,7 +100,215 @@
 
     .container {
       width: 100%;
-      max-width: 760px;
+      max-width: 1140px;
+    }
+
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+    }
+
+    .events-column {
+      min-width: 0;
+    }
+
+    /* Sidebar Widgets */
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .widget {
+      background-color: var(--surface);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--card-shadow);
+      padding: 16px 18px;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .widget-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+
+    .widget-status {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    /* 24-hr Clock */
+    .clock-widget {
+      text-align: center;
+      padding: 20px 18px;
+    }
+
+    .clock-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .clock-display {
+      margin: 4px 0 6px 0;
+    }
+
+    .clock-time {
+      font-size: 2.3rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      color: var(--text-main);
+    }
+
+    .clock-date {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Notes Widget */
+    .notes-textarea {
+      width: 100%;
+      min-height: 120px;
+      max-height: 360px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-main);
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      resize: vertical;
+      font-family: inherit;
+      transition: border-color 0.15s ease, background-color 0.18s ease;
+    }
+
+    .notes-textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    /* Links Widget */
+    .links-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .link-item:hover {
+      border-color: var(--border-focus);
+    }
+
+    .link-item-anchor {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 0.84rem;
+      font-weight: 500;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .link-item-anchor:hover {
+      text-decoration: underline;
+    }
+
+    .link-item-icon {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .link-item-delete {
+      background: none;
+      border: none;
+      padding: 0 4px;
+      font-size: 1.05rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      opacity: 0.65;
+      transition: opacity 0.15s ease, color 0.15s ease;
+    }
+
+    .link-item-delete:hover {
+      opacity: 1;
+      color: var(--danger-text);
+    }
+
+    .add-link-form {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+    }
+
+    .add-link-form input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 0.82rem;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      margin-bottom: 8px;
+      font-family: inherit;
+    }
+
+    .add-link-form input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+
+    .add-link-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
     }
 
     header {
@@ -827,12 +1035,60 @@
         </div>
       </header>
 
-      <section class="events-section">
-        <h2>Events</h2>
-        <div id="eventsList" class="events-list">
-          <div id="emptyState" class="empty-state">No events recorded yet. Click "Add Event" to create one.</div>
-        </div>
-      </section>
+      <div class="dashboard-layout">
+        <!-- Events Column (Left) -->
+        <main class="events-column">
+          <section class="events-section">
+            <h2>Events</h2>
+            <div id="eventsList" class="events-list">
+              <div id="emptyState" class="empty-state">No events recorded yet. Click "Add Event" to create one.</div>
+            </div>
+          </section>
+        </main>
+
+        <!-- Sidebar Widgets Column (Right) -->
+        <aside class="sidebar-section" aria-label="Treasurer widgets and tools">
+          <!-- 1. 24hr Clock Widget -->
+          <div class="widget clock-widget">
+            <div class="widget-header" style="margin-bottom: 6px;">
+              <span class="clock-badge">24-Hour Clock</span>
+              <span class="widget-status">UK Time</span>
+            </div>
+            <div class="clock-display">
+              <span id="clockWidgetTime" class="clock-time">00:00:00</span>
+            </div>
+            <div id="clockWidgetDate" class="clock-date">Loading date...</div>
+          </div>
+
+          <!-- 2. Notes Widget -->
+          <div class="widget notes-widget">
+            <div class="widget-header">
+              <h3 class="widget-title">Notes</h3>
+              <span class="widget-status" id="notesWidgetStatus">Saved</span>
+            </div>
+            <textarea id="notesWidgetText" class="notes-textarea" placeholder="Jot down quick treasurer notes, reminders, or pending tasks..." spellcheck="true"></textarea>
+          </div>
+
+          <!-- 3. Links Widget -->
+          <div class="widget links-widget">
+            <div class="widget-header">
+              <h3 class="widget-title">Quick Links</h3>
+              <button type="button" id="addLinkToggleBtn" class="btn-secondary btn-sm" title="Add a custom link bookmark">+ Add Link</button>
+            </div>
+
+            <form id="addLinkForm" class="add-link-form" style="display: none;">
+              <input type="text" id="linkTitleInput" placeholder="Title (e.g. iplicit)" required>
+              <input type="text" id="linkUrlInput" placeholder="URL (e.g. https://...)" required>
+              <div class="add-link-actions">
+                <button type="submit" class="btn-primary btn-sm">Add</button>
+                <button type="button" id="cancelAddLinkBtn" class="btn-secondary btn-sm">Cancel</button>
+              </div>
+            </form>
+
+            <ul id="linksWidgetList" class="links-list"></ul>
+          </div>
+        </aside>
+      </div>
     </div>
   </div>
 
@@ -1019,6 +1275,26 @@
           </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Pre-generation Validation Modal -->
+  <div id="validationModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="validationModalTitle">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h2 id="validationModalTitle" style="color: var(--danger-text);">Cannot Generate Document</h2>
+        <button id="closeValidationModalBtn" class="btn-close" type="button" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p id="validationModalIntro" style="font-size: 0.88rem; margin-bottom: 14px; line-height: 1.45; color: var(--text-main);">
+          The following issue(s) must be resolved before this document can be generated:
+        </p>
+        <ul id="validationErrorsList" style="list-style-type: disc; margin-left: 20px; font-size: 0.84rem; line-height: 1.6; color: var(--danger-text); margin-bottom: 18px;"></ul>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--border-color);">
+          <button type="button" id="validationFixBtn" class="btn-primary btn-sm">Edit Event</button>
+          <button type="button" id="validationDismissBtn" class="btn-secondary btn-sm">Dismiss</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1532,9 +1808,144 @@
       return phrases;
     }
 
-    async function generateBlueFormPdf(eventObj) {
+    // ==========================================
+    // Pre-Generation Error Checking & Validation
+    // ==========================================
+    const validationModalBackdrop = document.getElementById('validationModalBackdrop');
+    const validationModalTitle = document.getElementById('validationModalTitle');
+    const validationErrorsList = document.getElementById('validationErrorsList');
+    const closeValidationModalBtn = document.getElementById('closeValidationModalBtn');
+    const validationFixBtn = document.getElementById('validationFixBtn');
+    const validationDismissBtn = document.getElementById('validationDismissBtn');
+
+    let currentValidationData = null;
+
+    function showValidationModal(data) {
+      currentValidationData = data;
+      if (validationModalTitle) validationModalTitle.textContent = data.title || 'Cannot Generate Document';
+      if (validationErrorsList) {
+        validationErrorsList.innerHTML = data.errors.map((err) => `<li>${escapeHtml(err)}</li>`).join('');
+      }
+      if (validationFixBtn) {
+        validationFixBtn.textContent = (data.fixAction === 'settings') ? 'Open Settings' : 'Edit Event';
+      }
+      if (validationModalBackdrop) validationModalBackdrop.classList.add('open');
+    }
+
+    function closeValidationModal() {
+      if (validationModalBackdrop) validationModalBackdrop.classList.remove('open');
+      currentValidationData = null;
+    }
+
+    if (closeValidationModalBtn) closeValidationModalBtn.addEventListener('click', closeValidationModal);
+    if (validationDismissBtn) validationDismissBtn.addEventListener('click', closeValidationModal);
+    if (validationModalBackdrop) {
+      validationModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === validationModalBackdrop) closeValidationModal();
+      });
+    }
+
+    if (validationFixBtn) {
+      validationFixBtn.addEventListener('click', () => {
+        if (!currentValidationData) return;
+        const { fixAction, eventId } = currentValidationData;
+        closeValidationModal();
+        if (fixAction === 'settings') {
+          openSettingsModal();
+        } else {
+          const target = events.find((item) => item.id === eventId);
+          if (target) openEditModal(target);
+        }
+      });
+    }
+
+    function validateBlueForm(eventObj) {
+      const errors = [];
+      let fixAction = 'edit';
+
       if (!templatePdfBuffer) {
-        showToast('Please upload the Finance Template PDF (Blue Form) first.');
+        errors.push('Finance Template PDF (Blue Form) is not uploaded. Please upload the official template PDF in Settings.');
+        fixAction = 'settings';
+      }
+
+      const eventName = (eventObj.name || '').trim();
+      if (!eventName) {
+        errors.push('Event name is missing.');
+      }
+
+      const clientName = (eventObj.clientName || '').trim();
+      if (!clientName) {
+        errors.push('Client or society name is missing.');
+      } else {
+        const deptCode = findDepartmentCodeForClient(clientName);
+        if (!deptCode) {
+          errors.push(`Client "${clientName}" has no account code in the Bath Societies Registry. Blue Forms can only be generated for recognized internal societies.`);
+        }
+      }
+
+      const charge = parseFloat(eventObj.charge);
+      if (isNaN(charge) || charge <= 0) {
+        errors.push('Event charge must be a valid positive amount greater than £0.00.');
+      }
+
+      if (eventObj.startDate && eventObj.endDate) {
+        if (eventObj.endDate < eventObj.startDate) {
+          errors.push(`End date (${eventObj.endDate}) cannot be earlier than start date (${eventObj.startDate}).`);
+        }
+      }
+
+      return {
+        valid: errors.length === 0,
+        title: 'Cannot Generate Blue Form',
+        errors,
+        fixAction,
+        eventId: eventObj.id
+      };
+    }
+
+    function validateInvoice(eventObj) {
+      const errors = [];
+      let fixAction = 'edit';
+
+      if (!invoiceTemplatePdfBuffer) {
+        errors.push('Invoice Template PDF is not uploaded. Please upload a blank invoice PDF in Settings.');
+        fixAction = 'settings';
+      }
+
+      const eventName = (eventObj.name || '').trim();
+      if (!eventName) {
+        errors.push('Event name is missing.');
+      }
+
+      const charge = parseFloat(eventObj.charge);
+      if (isNaN(charge) || charge <= 0) {
+        errors.push('Event charge must be a valid positive amount greater than £0.00.');
+      }
+
+      const toRecipient = (eventObj.contactName || eventObj.clientName || '').trim();
+      if (!toRecipient) {
+        errors.push('Recipient ("To" field) is missing. Please add a Contact Name or Client Name to this event.');
+      }
+
+      if (eventObj.startDate && eventObj.endDate) {
+        if (eventObj.endDate < eventObj.startDate) {
+          errors.push(`End date (${eventObj.endDate}) cannot be earlier than start date (${eventObj.startDate}).`);
+        }
+      }
+
+      return {
+        valid: errors.length === 0,
+        title: 'Cannot Generate Invoice',
+        errors,
+        fixAction,
+        eventId: eventObj.id
+      };
+    }
+
+    async function generateBlueFormPdf(eventObj) {
+      const validation = validateBlueForm(eventObj);
+      if (!validation.valid) {
+        showValidationModal(validation);
         return;
       }
 
@@ -1819,8 +2230,9 @@
     }
 
     async function generateInvoicePdf(eventObj) {
-      if (!invoiceTemplatePdfBuffer) {
-        showToast('Please upload an Invoice Template PDF in Settings first.');
+      const validation = validateInvoice(eventObj);
+      if (!validation.valid) {
+        showValidationModal(validation);
         return;
       }
 
@@ -2197,18 +2609,34 @@
         // credentials: 'omit' prevents the browser from sending multi-account Google cookies
         // (which cause Google Apps Script to fail with "Sorry, unable to open the file at present").
         // mode: 'no-cors' + text/plain avoids Origin: null redirect blocks when opened from file://.
-        await fetch(cleanUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          credentials: 'omit',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
+        let result = null;
+        try {
+          const res = await fetch(cleanUrl, {
+            method: 'POST',
+            credentials: 'omit',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          if (res && res.ok) {
+            result = await res.json();
+          }
+        } catch (corsErr) {
+          // Fallback to no-cors if CORS response is opaque or blocked
+          await fetch(cleanUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            credentials: 'omit',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+        }
 
+        const folderStatus = (result && result.folderExisted) ? ' (existing folder)' : '';
         if (isInvoice) {
-          showToast(`✓ Saved "${fileName}" to Google Drive folder "${eventName}"!`, 5500);
+          showToast(`✓ Saved "${fileName}" to Google Drive folder "${eventName}"${folderStatus}!`, 5500);
         } else {
-          showToast(`✓ Sent "${fileName}" to Google Drive folder "${eventName}" & Gmail Drafts!`, 5500);
+          const draftStatus = (result && result.draftReplaced) ? ' (updated draft)' : '';
+          showToast(`✓ Saved "${fileName}" to Google Drive folder "${eventName}"${folderStatus} & Gmail Drafts${draftStatus}!`, 5500);
         }
       } catch (err) {
         console.error('Failed to call Google Apps Script Web App:', err);
@@ -2629,9 +3057,29 @@
           if (e.currentTarget.disabled) return;
           const id = e.currentTarget.getAttribute('data-id');
           const targetEvent = events.find((item) => item.id === id);
-          if (targetEvent) {
-            await generateBlueFormPdf(targetEvent);
+          if (!targetEvent) return;
+
+          // 1. Error checking before generation
+          const validation = validateBlueForm(targetEvent);
+          if (!validation.valid) {
+            showValidationModal(validation);
+            return;
           }
+
+          // 2. Automatically open Gmail Drafts & Google Drive
+          try {
+            window.open('https://mail.google.com/mail/u/0/#drafts', '_blank', 'noopener,noreferrer');
+            const parentFolderId = extractFolderId(getEffectiveParentDriveFolder());
+            const driveUrl = parentFolderId
+              ? `https://drive.google.com/drive/folders/${parentFolderId}`
+              : 'https://drive.google.com/drive/u/0/my-drive';
+            window.open(driveUrl, '_blank', 'noopener,noreferrer');
+          } catch (popupErr) {
+            console.warn('Could not open external windows:', popupErr);
+          }
+
+          // 3. Generate Blue Form PDF
+          await generateBlueFormPdf(targetEvent);
         });
       });
 
@@ -2641,9 +3089,24 @@
           if (e.currentTarget.disabled) return;
           const id = e.currentTarget.getAttribute('data-id');
           const targetEvent = events.find((item) => item.id === id);
-          if (targetEvent) {
-            await generateInvoicePdf(targetEvent);
+          if (!targetEvent) return;
+
+          // 1. Error checking before generation
+          const validation = validateInvoice(targetEvent);
+          if (!validation.valid) {
+            showValidationModal(validation);
+            return;
           }
+
+          // 2. Automatically open iplicit in a new window
+          try {
+            window.open('https://app.iplicit.com/bathsu/#view', '_blank', 'noopener,noreferrer');
+          } catch (popupErr) {
+            console.warn('Could not open iplicit:', popupErr);
+          }
+
+          // 3. Generate Invoice PDF
+          await generateInvoicePdf(targetEvent);
         });
       });
 
@@ -2732,6 +3195,7 @@
         if (modalBackdrop.classList.contains('open')) closeModal();
         if (settingsModalBackdrop && settingsModalBackdrop.classList.contains('open')) closeSettingsModal();
         if (clientIdModalBackdrop && clientIdModalBackdrop.classList.contains('open')) closeClientIdModal();
+        if (validationModalBackdrop && validationModalBackdrop.classList.contains('open')) closeValidationModal();
       }
     });
 
@@ -3111,6 +3575,151 @@
 
     // Initial render
     renderEvents();
+
+    // ==========================================
+    // Sidebar Widgets (24hr Clock, Notes, Quick Links)
+    // ==========================================
+    const clockWidgetTime = document.getElementById('clockWidgetTime');
+    const clockWidgetDate = document.getElementById('clockWidgetDate');
+
+    function updateClockWidget() {
+      if (!clockWidgetTime || !clockWidgetDate) return;
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      clockWidgetTime.textContent = `${h}:${m}:${s}`;
+      clockWidgetDate.textContent = now.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+
+    updateClockWidget();
+    setInterval(updateClockWidget, 1000);
+
+    // Notes Widget
+    const NOTES_STORAGE_KEY = 'treastrack_quick_notes';
+    const notesWidgetText = document.getElementById('notesWidgetText');
+    const notesWidgetStatus = document.getElementById('notesWidgetStatus');
+    let notesSaveTimeout = null;
+
+    if (notesWidgetText) {
+      notesWidgetText.value = localStorage.getItem(NOTES_STORAGE_KEY) || '';
+      notesWidgetText.addEventListener('input', () => {
+        if (notesWidgetStatus) notesWidgetStatus.textContent = 'Saving...';
+        clearTimeout(notesSaveTimeout);
+        notesSaveTimeout = setTimeout(() => {
+          localStorage.setItem(NOTES_STORAGE_KEY, notesWidgetText.value);
+          if (notesWidgetStatus) notesWidgetStatus.textContent = 'Saved';
+        }, 300);
+      });
+    }
+
+    // Quick Links Widget
+    const LINKS_STORAGE_KEY = 'treastrack_quick_links';
+    const DEFAULT_QUICK_LINKS = [
+      { id: 'link_1', title: 'iplicit (Bath SU)', url: 'https://app.iplicit.com/bathsu/#view' },
+      { id: 'link_2', title: 'Gmail Drafts', url: 'https://mail.google.com/mail/u/0/#drafts' },
+      { id: 'link_3', title: 'Google Drive', url: 'https://drive.google.com/' },
+      { id: 'link_4', title: 'The SU Bath', url: 'https://www.thesubath.com/' }
+    ];
+
+    const linksWidgetList = document.getElementById('linksWidgetList');
+    const addLinkToggleBtn = document.getElementById('addLinkToggleBtn');
+    const addLinkForm = document.getElementById('addLinkForm');
+    const linkTitleInput = document.getElementById('linkTitleInput');
+    const linkUrlInput = document.getElementById('linkUrlInput');
+    const cancelAddLinkBtn = document.getElementById('cancelAddLinkBtn');
+
+    function getStoredLinks() {
+      try {
+        const stored = localStorage.getItem(LINKS_STORAGE_KEY);
+        if (stored) return JSON.parse(stored);
+      } catch (e) {
+        console.warn('Failed parsing stored links:', e);
+      }
+      return DEFAULT_QUICK_LINKS;
+    }
+
+    function saveStoredLinks(links) {
+      try {
+        localStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links));
+      } catch (e) {
+        console.warn('Failed saving links:', e);
+      }
+    }
+
+    function renderQuickLinks() {
+      if (!linksWidgetList) return;
+      const links = getStoredLinks();
+      if (links.length === 0) {
+        linksWidgetList.innerHTML = '<li style="font-size: 0.8rem; color: var(--text-muted); padding: 8px 0; font-style: italic;">No links saved. Click "+ Add Link" above.</li>';
+        return;
+      }
+
+      linksWidgetList.innerHTML = links.map((link) => `
+        <li class="link-item" data-id="${escapeHtml(link.id)}">
+          <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="link-item-anchor" title="${escapeHtml(link.url)}">
+            <span class="link-item-icon">↗</span>
+            <span style="overflow: hidden; text-overflow: ellipsis;">${escapeHtml(link.title)}</span>
+          </a>
+          <button type="button" class="link-item-delete" data-id="${escapeHtml(link.id)}" title="Remove link" aria-label="Delete link">&times;</button>
+        </li>
+      `).join('');
+
+      linksWidgetList.querySelectorAll('.link-item-delete').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = e.currentTarget.getAttribute('data-id');
+          const current = getStoredLinks().filter((l) => l.id !== id);
+          saveStoredLinks(current);
+          renderQuickLinks();
+        });
+      });
+    }
+
+    if (addLinkToggleBtn && addLinkForm) {
+      addLinkToggleBtn.addEventListener('click', () => {
+        const isHidden = addLinkForm.style.display === 'none' || !addLinkForm.style.display;
+        addLinkForm.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          linkTitleInput.value = '';
+          linkUrlInput.value = '';
+          linkTitleInput.focus();
+        }
+      });
+
+      cancelAddLinkBtn.addEventListener('click', () => {
+        addLinkForm.style.display = 'none';
+      });
+
+      addLinkForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = linkTitleInput.value.trim();
+        let url = linkUrlInput.value.trim();
+        if (!title || !url) return;
+
+        if (!/^https?:\/\//i.test(url)) {
+          url = 'https://' + url;
+        }
+
+        const links = getStoredLinks();
+        links.push({
+          id: 'link_' + Date.now(),
+          title,
+          url
+        });
+        saveStoredLinks(links);
+        renderQuickLinks();
+        addLinkForm.style.display = 'none';
+        showToast(`Saved link "${title}"`);
+      });
+
+      renderQuickLinks();
+    }
   </script>
 </body>
 </html>

@@ -81,7 +81,21 @@ function doPost(e) {
       ? DriveApp.getFolderById(parentFolderId)
       : DriveApp.getRootFolder();
 
-    var eventFolder = getOrCreateSubfolder(parentFolder, eventName);
+    var existingFolders = parentFolder.getFoldersByName(eventName);
+    var folderExisted = existingFolders.hasNext();
+    var eventFolder = folderExisted ? existingFolders.next() : parentFolder.createFolder(eventName);
+
+    // Check if a file with the same name already exists in this folder (e.g. updating an invoice or blue form)
+    var existingFiles = eventFolder.getFilesByName(fileName);
+    var fileExisted = existingFiles.hasNext();
+    while (existingFiles.hasNext()) {
+      var oldFile = existingFiles.next();
+      try {
+        oldFile.setTrashed(true); // Clean up previous copy with the exact same name
+      } catch (trashErr) {
+        Logger.log('Could not trash old file: ' + trashErr);
+      }
+    }
 
     // Save the PDF file into the event folder
     var savedFile = eventFolder.createFile(pdfBlob);
@@ -89,18 +103,33 @@ function doPost(e) {
     // 3. Build the Gmail Draft only for Blue Forms (skipped for Invoices)
     var skipDraft = (payload.skipDraft === true || isInvoice);
     var draftCreated = false;
+    var draftExisted = false;
     if (!skipDraft) {
       var subject = 'Blue Form - ' + eventName;
-      var plainBody = 'Hi,\n\nPlease find attached the Blue Form for ' + eventName;
+      var plainBody = 'Hi,\n\nPlease find attached the Blue Form for ' + eventName + '.';
       var htmlBody =
-        '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222;">' +
-        '<p>Hi,</p>' +
-        '<p>Please find attached the Blue Form for ' + escapeHtml(eventName) + '</p>' +
+        '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222; line-height: 1.5;">' +
+        '<p style="margin: 0 0 12px 0;">Hi,</p>' +
+        '<p style="margin: 0 0 12px 0;">Please find attached the Blue Form for ' + escapeHtml(eventName) + '.</p>' +
         '</div>';
 
       var signatureHtml = getGmailSignatureHtml();
       if (signatureHtml) {
-        htmlBody += '<br>' + signatureHtml;
+        htmlBody += signatureHtml;
+      }
+
+      // Check if a draft with the exact same subject already exists in Gmail to avoid duplicates
+      try {
+        var existingDrafts = GmailApp.getDrafts();
+        for (var d = 0; d < existingDrafts.length; d++) {
+          if (existingDrafts[d].getMessage().getSubject() === subject) {
+            draftExisted = true;
+            existingDrafts[d].deleteDraft(); // Remove outdated draft before recreating with latest PDF
+            break;
+          }
+        }
+      } catch (draftCheckErr) {
+        Logger.log('Could not check existing drafts: ' + draftCheckErr);
       }
 
       createGmailDraft(subject, plainBody, htmlBody, pdfBlob);
@@ -111,8 +140,11 @@ function doPost(e) {
       success: true,
       folderName: eventFolder.getName(),
       folderUrl: eventFolder.getUrl(),
+      folderExisted: folderExisted,
       fileUrl: savedFile.getUrl(),
-      draftCreated: draftCreated
+      fileReplaced: fileExisted,
+      draftCreated: draftCreated,
+      draftReplaced: draftExisted
     });
   } catch (err) {
     return jsonResponse({
