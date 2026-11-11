@@ -748,7 +748,13 @@
     .meta-contact {
       display: inline-flex;
       align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+    }
+
+    .meta-contact strong {
       color: var(--text-main);
+      font-weight: 600;
     }
 
     .meta-sep {
@@ -3225,7 +3231,7 @@
           </div>
           <div class="event-meta-line">
             <span class="meta-date">${dateRangeDisplay}</span>
-            ${ev.contactName ? `<span class="meta-sep">&bull;</span><span class="meta-contact">Contact: <strong>${escapeHtml(ev.contactName)}</strong></span>` : ''}
+            ${ev.contactName ? `<span class="meta-sep">&bull;</span><span class="meta-contact"><span>Contact:</span> <strong>${escapeHtml(ev.contactName)}</strong></span>` : ''}
           </div>
           <div class="card-footer-row">
             <div class="card-checkbox-group">
