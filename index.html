@@ -143,16 +143,6 @@
       color: var(--text-main);
     }
 
-    .brand-badge {
-      font-size: 0.68rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 2px 7px;
-      background-color: var(--surface-light);
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-    }
 
     .header-actions {
       display: flex;
@@ -1123,23 +1113,6 @@
       color: var(--text-main);
     }
 
-    /* Muted out-of-the-way bottom credit */
-    .window-credit {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      text-align: center;
-      padding: 10px 16px;
-      font-size: 0.73rem;
-      letter-spacing: 0.015em;
-      color: var(--text-muted);
-      opacity: 0.65;
-      pointer-events: none;
-      z-index: 1050;
-      user-select: none;
-      transition: color 0.18s ease;
-    }
   </style>
 </head>
 <body>
@@ -1178,7 +1151,6 @@
       <div class="top-header-inner">
         <div class="header-brand">
           <h1 class="brand-title">BTS Treas Tools</h1>
-          <span class="brand-badge">Bath Society</span>
         </div>
         <div class="header-actions">
           <button type="button" id="openSettingsBtn" class="btn-secondary btn-header" title="Settings (Appearance, Templates, Google Automation)">
@@ -1474,8 +1446,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Bottom Window Muted Credit -->
-  <footer class="window-credit" aria-label="Site credits">Brought to you by Gemini and Charlie Davis</footer>
 
   <script>
     // Configure PDF.js worker
