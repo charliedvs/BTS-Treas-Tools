@@ -93,27 +93,140 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 60px 20px 48px 20px;
+      align-items: stretch;
+      padding: 0;
+      margin: 0;
       transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    #appContainer {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Header */
+    .app-top-header {
+      width: 100%;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: background-color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .top-header-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-sizing: border-box;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-title {
+      font-size: 1.22rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+      color: var(--text-main);
+    }
+
+    .brand-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface-light);
+      color: var(--text-main);
+    }
+
+    .user-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10b981;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      padding: 2px 7px;
+      cursor: pointer;
+      border-radius: 0;
+      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-logout:hover {
+      color: var(--text-main);
+      border-color: var(--border-focus);
+      background-color: var(--surface);
     }
 
     .container {
       width: 100%;
       max-width: 1140px;
+      padding: 28px 20px 60px 20px;
+      margin: 0 auto;
+      box-sizing: border-box;
     }
 
     .dashboard-layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 330px;
-      gap: 32px;
+      gap: 28px;
       align-items: start;
     }
 
     @media (max-width: 980px) {
       .dashboard-layout {
         grid-template-columns: 1fr;
-        gap: 32px;
+        gap: 28px;
       }
     }
 
@@ -121,11 +234,31 @@
       min-width: 0;
     }
 
+    .column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+      min-height: 28px;
+    }
+
+    .column-header h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .section-count-badge {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
     /* Sidebar Widgets */
     .sidebar-section {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
       min-width: 0;
     }
 
@@ -141,18 +274,26 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .widget-title {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 600;
       letter-spacing: -0.01em;
       margin: 0;
     }
 
-    .widget-status {
+    .widget-subtitle {
       font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .widget-status {
+      font-size: 0.7rem;
       color: var(--text-muted);
       letter-spacing: 0.04em;
       font-weight: 500;
@@ -162,18 +303,27 @@
     /* 24-hr Clock */
     .clock-widget {
       text-align: center;
-      padding: 20px 18px;
+      padding: 18px 18px;
     }
 
-    .clock-badge {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 2px 6px;
-      background-color: var(--surface-light);
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10b981;
+      display: inline-block;
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     .clock-display {
@@ -181,7 +331,7 @@
     }
 
     .clock-time {
-      font-size: 2.3rem;
+      font-size: 2.15rem;
       font-weight: 700;
       letter-spacing: 0.04em;
       font-variant-numeric: tabular-nums;
@@ -190,24 +340,31 @@
     }
 
     .clock-date {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--text-muted);
       font-weight: 500;
     }
 
     /* Notes Widget */
+    .notes-status-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .notes-textarea {
       width: 100%;
-      min-height: 120px;
-      max-height: 360px;
+      min-height: 115px;
+      max-height: 320px;
       padding: 10px 12px;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       line-height: 1.5;
       color: var(--text-main);
       background-color: var(--input-bg);
       border: 1px solid var(--border-color);
       resize: vertical;
       font-family: inherit;
+      box-sizing: border-box;
       transition: border-color 0.15s ease, background-color 0.18s ease;
     }
 
@@ -216,14 +373,14 @@
       border-color: var(--border-focus);
     }
 
-    /* Links Widget */
+    /* Quick Links Widget */
     .links-list {
       list-style: none;
       margin: 0;
       padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 7px;
+      gap: 3px;
     }
 
     .link-item {
@@ -231,20 +388,21 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 8px 10px;
-      background-color: var(--surface-light);
-      border: 1px solid var(--border-color);
-      transition: border-color 0.15s ease, background-color 0.15s ease;
+      padding: 7px 10px;
+      background-color: transparent;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
     }
 
     .link-item:hover {
-      border-color: var(--border-focus);
+      background-color: var(--surface-light);
+      border-color: var(--border-color);
     }
 
     .link-item-anchor {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
       color: var(--text-main);
       text-decoration: none;
       font-size: 0.84rem;
@@ -263,22 +421,32 @@
       font-size: 0.82rem;
       color: var(--text-muted);
       flex-shrink: 0;
+      transition: transform 0.15s ease, color 0.15s ease;
+    }
+
+    .link-item:hover .link-item-icon {
+      color: var(--text-main);
+      transform: translate(1px, -1px);
     }
 
     .link-item-delete {
       background: none;
       border: none;
-      padding: 0 4px;
-      font-size: 1.05rem;
+      padding: 2px 5px;
+      font-size: 0.95rem;
       line-height: 1;
       color: var(--text-muted);
       cursor: pointer;
-      opacity: 0.65;
+      opacity: 0;
       transition: opacity 0.15s ease, color 0.15s ease;
     }
 
+    .link-item:hover .link-item-delete {
+      opacity: 0.65;
+    }
+
     .link-item-delete:hover {
-      opacity: 1;
+      opacity: 1 !important;
       color: var(--danger-text);
     }
 
@@ -298,6 +466,7 @@
       color: var(--text-main);
       margin-bottom: 8px;
       font-family: inherit;
+      box-sizing: border-box;
     }
 
     .add-link-form input:focus {
@@ -311,26 +480,10 @@
       justify-content: flex-end;
     }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid var(--header-border);
-      padding-bottom: 16px;
-      margin-bottom: 28px;
-      transition: border-color 0.18s ease;
-    }
-
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .btn-xs {
+      padding: 3px 8px;
+      font-size: 0.74rem;
+      font-weight: 500;
     }
 
     button {
@@ -476,81 +629,158 @@
 
     .event-card {
       border: 1px solid var(--border-color);
-      padding: 16px;
       background-color: var(--surface);
+      padding: 16px 18px;
       box-shadow: var(--card-shadow);
       transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .event-card-header {
+    .event-card:hover {
+      border-color: var(--border-focus);
+    }
+
+    .event-card-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 14px;
       margin-bottom: 6px;
-      gap: 12px;
     }
 
     .event-title-group {
       display: flex;
-      align-items: baseline;
-      flex-wrap: wrap;
-      gap: 10px;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
     }
 
     .event-title {
-      font-weight: 600;
       font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      word-break: break-word;
+      margin: 0;
+    }
+
+    .event-badges-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
     .event-client-badge {
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 2px 7px;
       border: 1px solid var(--border-color);
       background-color: var(--surface-light);
-      padding: 1px 7px;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
     }
 
     .event-client-badge.unlisted {
       color: var(--danger-text);
-      border-color: var(--danger-border);
       background-color: var(--danger-bg);
-      font-weight: 500;
-    }
-
-    .event-charge {
+      border-color: var(--danger-border);
       font-weight: 600;
-      font-size: 1rem;
-      font-variant-numeric: tabular-nums;
     }
 
-    .event-card-actions {
+    .event-inv-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface-light);
+      color: var(--text-main);
+      letter-spacing: 0.04em;
+    }
+
+    .event-top-right {
       display: flex;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
       flex-shrink: 0;
     }
 
-    .btn-edit,
-    .btn-delete {
-      background: none;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      cursor: pointer;
-      padding: 2px 6px;
-      transition: color 0.15s ease, border-color 0.15s ease;
-    }
-
-    .btn-edit:hover,
-    .btn-delete:hover {
-      border-color: var(--border-focus);
+    .event-charge {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
       color: var(--text-main);
     }
 
-    .event-dates {
-      font-size: 0.84rem;
+    .event-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-ghost-sm {
+      background: none;
+      border: none;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 1px 4px;
+      transition: color 0.15s ease;
+    }
+
+    .btn-ghost-sm:hover {
+      color: var(--text-main);
+      text-decoration: underline;
+    }
+
+    .btn-ghost-sm.btn-delete:hover {
+      color: var(--danger-text);
+    }
+
+    .event-meta-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.81rem;
       color: var(--text-muted);
       margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .meta-date {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .meta-contact {
+      display: inline-flex;
+      align-items: center;
+      color: var(--text-main);
+    }
+
+    .meta-sep {
+      opacity: 0.4;
+      font-size: 0.7rem;
+    }
+
+    .event-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-top: 10px;
+      margin-top: 6px;
+      border-top: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .card-footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .card-footer-row {
@@ -893,76 +1123,6 @@
       color: var(--text-main);
     }
 
-    /* Top Navigation Bar: Settings Cog (top left) & Login Status (top right) */
-    .top-nav-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 24px;
-      pointer-events: none;
-      z-index: 100;
-    }
-
-    .top-nav-bar > * {
-      pointer-events: auto;
-    }
-
-    .settings-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      border: 1px solid var(--border-color);
-      background-color: var(--surface);
-      color: var(--text-main);
-      box-shadow: var(--card-shadow);
-      cursor: pointer;
-      border-radius: 0;
-      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-    }
-
-    .settings-btn:hover {
-      background-color: var(--surface-light);
-      border-color: var(--border-focus);
-    }
-
-    /* Authenticated User Pill in Top Right Corner */
-    .user-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      border: 1px solid var(--border-color);
-      background-color: var(--surface);
-      color: var(--text-main);
-      box-shadow: var(--card-shadow);
-    }
-
-    .btn-logout {
-      background: var(--surface-light);
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      font-size: 0.76rem;
-      font-weight: 500;
-      padding: 3px 8px;
-      cursor: pointer;
-      border-radius: 0;
-      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-    }
-
-    .btn-logout:hover {
-      color: var(--danger-text);
-      border-color: var(--danger-border);
-      background-color: var(--danger-bg);
-    }
-
     /* Muted out-of-the-way bottom credit */
     .window-credit {
       position: fixed;
@@ -1013,35 +1173,44 @@
   </div>
 
   <div id="appContainer" style="display: none;">
-    <!-- Top Nav Bar: Settings Cog (top left) & Login Status (top right) -->
-    <div class="top-nav-bar">
-      <button type="button" id="openSettingsBtn" class="settings-btn" title="Settings (Appearance, Template, Google Automation)" aria-label="Settings">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
-      </button>
-      <div id="userPillContainer" class="user-pill" title="Signed in as BTS Treasurer">
-        <span id="userPillEmail">treas@bts-crew.com</span>
-        <button type="button" id="signOutBtn" class="btn-logout" title="Sign out of BTS Treas Tools">Sign Out</button>
+    <!-- Top Navigation Header -->
+    <header class="app-top-header">
+      <div class="top-header-inner">
+        <div class="header-brand">
+          <h1 class="brand-title">BTS Treas Tools</h1>
+          <span class="brand-badge">Bath Society</span>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="openSettingsBtn" class="btn-secondary btn-header" title="Settings (Appearance, Templates, Google Automation)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>Settings</span>
+          </button>
+          <div id="userPillContainer" class="user-pill" title="Signed in as BTS Treasurer">
+            <span class="user-status-dot"></span>
+            <span id="userPillEmail">treas@bts-crew.com</span>
+            <button type="button" id="signOutBtn" class="btn-logout" title="Sign out of BTS Treas Tools">Sign Out</button>
+          </div>
+          <button type="button" id="openModalBtn" class="btn-primary" style="display: flex; align-items: center; gap: 6px; padding: 7px 14px;">
+            <span>+ Add Event</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
 
     <div class="container">
-      <header>
-        <h1>BTS Treas Tools</h1>
-        <div class="header-actions">
-          <button id="openModalBtn" class="btn-primary">Add Event</button>
-        </div>
-      </header>
-
       <div class="dashboard-layout">
         <!-- Events Column (Left) -->
         <main class="events-column">
           <section class="events-section">
-            <h2>Events</h2>
+            <div class="column-header">
+              <h2>Events</h2>
+              <span id="eventsCountBadge" class="section-count-badge">0 events</span>
+            </div>
             <div id="eventsList" class="events-list">
-              <div id="emptyState" class="empty-state">No events recorded yet. Click "Add Event" to create one.</div>
+              <div id="emptyState" class="empty-state">No events recorded yet. Click "+ Add Event" to create one.</div>
             </div>
           </section>
         </main>
@@ -1050,9 +1219,12 @@
         <aside class="sidebar-section" aria-label="Treasurer widgets and tools">
           <!-- 1. 24hr Clock Widget -->
           <div class="widget clock-widget">
-            <div class="widget-header" style="margin-bottom: 6px;">
-              <span class="clock-badge">24-Hour Clock</span>
-              <span class="widget-status">UK Time</span>
+            <div class="widget-header">
+              <span class="widget-subtitle">UK Time</span>
+              <div class="live-indicator">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span class="widget-status">Live</span>
+              </div>
             </div>
             <div class="clock-display">
               <span id="clockWidgetTime" class="clock-time">00:00:00</span>
@@ -1064,7 +1236,9 @@
           <div class="widget notes-widget">
             <div class="widget-header">
               <h3 class="widget-title">Notes</h3>
-              <span class="widget-status" id="notesWidgetStatus">Saved</span>
+              <div class="notes-status-wrap">
+                <span class="widget-status" id="notesWidgetStatus">Saved</span>
+              </div>
             </div>
             <textarea id="notesWidgetText" class="notes-textarea" placeholder="Jot down quick treasurer notes, reminders, or pending tasks..." spellcheck="true"></textarea>
           </div>
@@ -1073,15 +1247,15 @@
           <div class="widget links-widget">
             <div class="widget-header">
               <h3 class="widget-title">Quick Links</h3>
-              <button type="button" id="addLinkToggleBtn" class="btn-secondary btn-sm" title="Add a custom link bookmark">+ Add Link</button>
+              <button type="button" id="addLinkToggleBtn" class="btn-secondary btn-xs" title="Add a custom link bookmark">+ Add Link</button>
             </div>
 
             <form id="addLinkForm" class="add-link-form" style="display: none;">
               <input type="text" id="linkTitleInput" placeholder="Title (e.g. iplicit)" required>
               <input type="text" id="linkUrlInput" placeholder="URL (e.g. https://...)" required>
               <div class="add-link-actions">
-                <button type="submit" class="btn-primary btn-sm">Add</button>
-                <button type="button" id="cancelAddLinkBtn" class="btn-secondary btn-sm">Cancel</button>
+                <button type="submit" class="btn-primary btn-xs">Add</button>
+                <button type="button" id="cancelAddLinkBtn" class="btn-secondary btn-xs">Cancel</button>
               </div>
             </form>
 
@@ -2974,8 +3148,61 @@
 
     clientNameInput.addEventListener('input', updateClientCodeHint);
 
+    function formatHumanDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = String(dateStr).split('-');
+      if (parts.length !== 3) return escapeHtml(dateStr);
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      if (isNaN(y) || isNaN(m) || isNaN(d)) return escapeHtml(dateStr);
+      const dObj = new Date(Date.UTC(y, m - 1, d));
+      const month = dObj.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+      return `${d} ${month} ${y}`;
+    }
+
+    function formatHumanDateRange(startStr, endStr) {
+      if (!startStr && !endStr) return '';
+      if (startStr && !endStr) return formatHumanDate(startStr);
+      if (!startStr && endStr) return formatHumanDate(endStr);
+      if (startStr === endStr) return formatHumanDate(startStr);
+
+      const sParts = String(startStr).split('-');
+      const eParts = String(endStr).split('-');
+      if (sParts.length !== 3 || eParts.length !== 3) {
+        return `${escapeHtml(startStr)} &ndash; ${escapeHtml(endStr)}`;
+      }
+      const sY = parseInt(sParts[0], 10);
+      const sM = parseInt(sParts[1], 10);
+      const sD = parseInt(sParts[2], 10);
+      const eY = parseInt(eParts[0], 10);
+      const eM = parseInt(eParts[1], 10);
+      const eD = parseInt(eParts[2], 10);
+      if (isNaN(sY) || isNaN(sM) || isNaN(sD) || isNaN(eY) || isNaN(eM) || isNaN(eD)) {
+        return `${escapeHtml(startStr)} &ndash; ${escapeHtml(endStr)}`;
+      }
+
+      const sDate = new Date(Date.UTC(sY, sM - 1, sD));
+      const eDate = new Date(Date.UTC(eY, eM - 1, eD));
+      const sMonth = sDate.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+      const eMonth = eDate.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+
+      if (sY === eY && sM === eM) {
+        return `${sD} &ndash; ${eD} ${sMonth} ${sY}`;
+      }
+      if (sY === eY) {
+        return `${sD} ${sMonth} &ndash; ${eD} ${eMonth} ${sY}`;
+      }
+      return `${sD} ${sMonth} ${sY} &ndash; ${eD} ${eMonth} ${eY}`;
+    }
+
     function renderEvents() {
       sortEvents();
+
+      const countBadge = document.getElementById('eventsCountBadge');
+      if (countBadge) {
+        countBadge.textContent = events.length === 1 ? '1 event' : `${events.length} events`;
+      }
 
       if (events.length === 0) {
         emptyState.style.display = 'block';
@@ -3006,21 +3233,29 @@
           ? `Client: ${clientDisplay} (${escapeHtml(deptCode)})`
           : `Client: ${clientDisplay} (Not listed)`;
 
+        const dateRangeDisplay = formatHumanDateRange(ev.startDate, ev.endDate);
+
         card.innerHTML = `
-          <div class="event-card-header">
+          <div class="event-card-top">
             <div class="event-title-group">
-              <span class="event-title">${escapeHtml(ev.name)}</span>
-              <span class="${clientBadgeClass}">${clientBadgeText}</span>
-              ${ev.invoiceNumber ? `<span class="event-client-badge" title="Invoice Number">INV${escapeHtml(ev.invoiceNumber)}</span>` : ''}
-              <span class="event-charge">£${chargeFormatted}</span>
+              <h3 class="event-title">${escapeHtml(ev.name)}</h3>
+              <div class="event-badges-row">
+                <span class="${clientBadgeClass}">${clientBadgeText}</span>
+                ${ev.invoiceNumber ? `<span class="event-inv-badge" title="Invoice Number">INV-${escapeHtml(ev.invoiceNumber)}</span>` : ''}
+              </div>
             </div>
-            <div class="event-card-actions">
-              <button class="btn-edit" type="button" data-id="${ev.id}">Edit</button>
-              <button class="btn-delete" type="button" data-id="${ev.id}">Delete</button>
+            <div class="event-top-right">
+              <span class="event-charge">£${chargeFormatted}</span>
+              <div class="event-quick-actions">
+                <button class="btn-ghost-sm btn-edit" type="button" data-id="${ev.id}">Edit</button>
+                <span class="meta-sep">&bull;</span>
+                <button class="btn-ghost-sm btn-delete" type="button" data-id="${ev.id}">Delete</button>
+              </div>
             </div>
           </div>
-          <div class="event-dates">
-            ${escapeHtml(ev.startDate)} &mdash; ${escapeHtml(ev.endDate)}${ev.contactName ? ` &bull; Contact: <strong>${escapeHtml(ev.contactName)}</strong>` : ''}
+          <div class="event-meta-line">
+            <span class="meta-date">${dateRangeDisplay}</span>
+            ${ev.contactName ? `<span class="meta-sep">&bull;</span><span class="meta-contact">Contact: <strong>${escapeHtml(ev.contactName)}</strong></span>` : ''}
           </div>
           <div class="card-footer-row">
             <div class="card-checkbox-group">
