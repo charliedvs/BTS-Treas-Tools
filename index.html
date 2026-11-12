@@ -118,9 +118,9 @@
     }
 
     .top-header-inner {
-      max-width: 1140px;
-      margin: 0 auto;
-      padding: 12px 20px;
+      width: 100%;
+      max-width: 100%;
+      padding: 12px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -200,23 +200,23 @@
 
     .container {
       width: 100%;
-      max-width: 1140px;
-      padding: 28px 20px 60px 20px;
-      margin: 0 auto;
+      max-width: 100%;
+      padding: 24px 28px 60px 28px;
+      margin: 0;
       box-sizing: border-box;
     }
 
     .dashboard-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
+      grid-template-columns: minmax(0, 1fr) 350px;
       gap: 28px;
       align-items: start;
     }
 
-    @media (max-width: 980px) {
+    @media (max-width: 1020px) {
       .dashboard-layout {
         grid-template-columns: 1fr;
-        gap: 28px;
+        gap: 24px;
       }
     }
 
@@ -344,11 +344,12 @@
 
     .notes-textarea {
       width: 100%;
-      min-height: 115px;
-      max-height: 320px;
-      padding: 10px 12px;
-      font-size: 0.84rem;
-      line-height: 1.5;
+      min-height: 260px;
+      height: 280px;
+      max-height: 550px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      line-height: 1.55;
       color: var(--text-main);
       background-color: var(--input-bg);
       border: 1px solid var(--border-color);
@@ -363,117 +364,130 @@
       border-color: var(--border-focus);
     }
 
-    /* Quick Links Widget */
-    .links-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
+    /* Upcoming & Ongoing Events Widget */
+    .upcoming-widget {
+      padding: 14px 16px;
+    }
+
+    .upcoming-list {
       display: flex;
       flex-direction: column;
-      gap: 3px;
-    }
-
-    .link-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       gap: 8px;
-      padding: 7px 10px;
-      background-color: transparent;
-      border: 1px solid transparent;
-      transition: background-color 0.15s ease, border-color 0.15s ease;
+      margin: 0;
+      padding: 0;
     }
 
-    .link-item:hover {
-      background-color: var(--surface-light);
-      border-color: var(--border-color);
-    }
-
-    .link-item-anchor {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--text-main);
-      text-decoration: none;
-      font-size: 0.84rem;
-      font-weight: 500;
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .link-item-anchor:hover {
-      text-decoration: underline;
-    }
-
-    .link-item-icon {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      flex-shrink: 0;
-      transition: transform 0.15s ease, color 0.15s ease;
-    }
-
-    .link-item:hover .link-item-icon {
-      color: var(--text-main);
-      transform: translate(1px, -1px);
-    }
-
-    .link-item-delete {
-      background: none;
-      border: none;
-      padding: 2px 5px;
-      font-size: 0.95rem;
-      line-height: 1;
-      color: var(--text-muted);
-      cursor: pointer;
-      opacity: 0;
-      transition: opacity 0.15s ease, color 0.15s ease;
-    }
-
-    .link-item:hover .link-item-delete {
-      opacity: 0.65;
-    }
-
-    .link-item-delete:hover {
-      opacity: 1 !important;
-      color: var(--danger-text);
-    }
-
-    .add-link-form {
-      margin-bottom: 10px;
+    .upcoming-item {
       padding: 10px 12px;
       background-color: var(--surface-light);
       border: 1px solid var(--border-color);
-    }
-
-    .add-link-form input {
-      width: 100%;
-      padding: 6px 8px;
-      font-size: 0.82rem;
-      border: 1px solid var(--border-color);
-      background-color: var(--input-bg);
-      color: var(--text-main);
-      margin-bottom: 8px;
-      font-family: inherit;
-      box-sizing: border-box;
-    }
-
-    .add-link-form input:focus {
-      outline: none;
-      border-color: var(--border-focus);
-    }
-
-    .add-link-actions {
+      cursor: pointer;
       display: flex;
+      flex-direction: column;
       gap: 6px;
-      justify-content: flex-end;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
     }
 
-    .btn-xs {
-      padding: 3px 8px;
-      font-size: 0.74rem;
-      font-weight: 500;
+    .upcoming-item:hover {
+      background-color: var(--surface);
+      border-color: var(--border-focus);
+      transform: translateX(2px);
+    }
+
+    .upcoming-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .upcoming-item-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.3;
+      word-break: break-word;
+      flex: 1;
+    }
+
+    .status-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-badge.ongoing {
+      background-color: rgba(16, 185, 129, 0.14);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .status-badge.ongoing::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background-color: #10b981;
+      display: inline-block;
+      animation: pulse-dot 2s infinite ease-in-out;
+    }
+
+    .status-badge.upcoming {
+      background-color: var(--surface);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .upcoming-item-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.77rem;
+      color: var(--text-muted);
+    }
+
+    .upcoming-item-date {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+    }
+
+    .upcoming-item-charge {
+      font-weight: 600;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty-upcoming {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 12px 6px;
+      text-align: center;
+    }
+
+    @keyframes card-flash {
+      0% {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+      }
+      100% {
+        border-color: var(--border-color);
+        box-shadow: var(--card-shadow);
+      }
+    }
+
+    .event-card.flash-highlight {
+      animation: card-flash 1.6s ease-out;
     }
 
     button {
@@ -1210,7 +1224,18 @@
             <div id="clockWidgetDate" class="clock-date">Loading date...</div>
           </div>
 
-          <!-- 2. Notes Widget -->
+          <!-- 2. Soonest Upcoming / Ongoing Events Widget (Top 3) -->
+          <div class="widget upcoming-widget">
+            <div class="widget-header">
+              <h3 class="widget-title">Upcoming &amp; Ongoing</h3>
+              <span class="widget-subtitle" id="upcomingCountSubtitle">Top 3</span>
+            </div>
+            <div id="upcomingEventsList" class="upcoming-list">
+              <div class="empty-upcoming">No upcoming or ongoing events scheduled.</div>
+            </div>
+          </div>
+
+          <!-- 3. Notes Widget (Expanded Size) -->
           <div class="widget notes-widget">
             <div class="widget-header">
               <h3 class="widget-title">Notes</h3>
@@ -1219,25 +1244,6 @@
               </div>
             </div>
             <textarea id="notesWidgetText" class="notes-textarea" placeholder="Jot down quick treasurer notes, reminders, or pending tasks..." spellcheck="true"></textarea>
-          </div>
-
-          <!-- 3. Links Widget -->
-          <div class="widget links-widget">
-            <div class="widget-header">
-              <h3 class="widget-title">Quick Links</h3>
-              <button type="button" id="addLinkToggleBtn" class="btn-secondary btn-xs" title="Add a custom link bookmark">+ Add Link</button>
-            </div>
-
-            <form id="addLinkForm" class="add-link-form" style="display: none;">
-              <input type="text" id="linkTitleInput" placeholder="Title (e.g. iplicit)" required>
-              <input type="text" id="linkUrlInput" placeholder="URL (e.g. https://...)" required>
-              <div class="add-link-actions">
-                <button type="submit" class="btn-primary btn-xs">Add</button>
-                <button type="button" id="cancelAddLinkBtn" class="btn-secondary btn-xs">Cancel</button>
-              </div>
-            </form>
-
-            <ul id="linksWidgetList" class="links-list"></ul>
           </div>
         </aside>
       </div>
@@ -3184,6 +3190,7 @@
         emptyState.style.display = 'block';
         eventsList.innerHTML = '';
         eventsList.appendChild(emptyState);
+        renderUpcomingEvents();
         return;
       }
 
@@ -3194,6 +3201,7 @@
       events.forEach((ev) => {
         const card = document.createElement('div');
         card.className = 'event-card';
+        card.id = 'event-card-' + ev.id;
 
         const chargeFormatted = parseFloat(ev.charge || 0).toLocaleString('en-GB', {
           minimumFractionDigits: 2,
@@ -3341,6 +3349,9 @@
           renderEvents();
         });
       });
+
+      // Render the 3 soonest upcoming and/or ongoing events spotlight
+      renderUpcomingEvents();
     }
 
     function escapeHtml(str) {
@@ -3829,108 +3840,110 @@
       });
     }
 
-    // Quick Links Widget
-    const LINKS_STORAGE_KEY = 'treastrack_quick_links';
-    const DEFAULT_QUICK_LINKS = [
-      { id: 'link_1', title: 'iplicit (Bath SU)', url: 'https://app.iplicit.com/bathsu/#view' },
-      { id: 'link_2', title: 'Gmail Drafts', url: 'https://mail.google.com/mail/u/0/#drafts' },
-      { id: 'link_3', title: 'Google Drive', url: 'https://drive.google.com/' },
-      { id: 'link_4', title: 'The SU Bath', url: 'https://www.thesubath.com/' }
-    ];
-
-    const linksWidgetList = document.getElementById('linksWidgetList');
-    const addLinkToggleBtn = document.getElementById('addLinkToggleBtn');
-    const addLinkForm = document.getElementById('addLinkForm');
-    const linkTitleInput = document.getElementById('linkTitleInput');
-    const linkUrlInput = document.getElementById('linkUrlInput');
-    const cancelAddLinkBtn = document.getElementById('cancelAddLinkBtn');
-
-    function getStoredLinks() {
-      try {
-        const stored = localStorage.getItem(LINKS_STORAGE_KEY);
-        if (stored) return JSON.parse(stored);
-      } catch (e) {
-        console.warn('Failed parsing stored links:', e);
-      }
-      return DEFAULT_QUICK_LINKS;
+    // Upcoming & Ongoing Events Widget (Top 3 soonest)
+    function getLocalTodayIso() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
-    function saveStoredLinks(links) {
-      try {
-        localStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links));
-      } catch (e) {
-        console.warn('Failed saving links:', e);
-      }
+    function getDaysDiff(fromDateStr, toDateStr) {
+      if (!fromDateStr || !toDateStr) return 0;
+      const [fy, fm, fd] = fromDateStr.split('-').map(Number);
+      const [ty, tm, td] = toDateStr.split('-').map(Number);
+      if (isNaN(fy) || isNaN(fm) || isNaN(fd) || isNaN(ty) || isNaN(tm) || isNaN(td)) return 0;
+      const fUtc = Date.UTC(fy, fm - 1, fd);
+      const tUtc = Date.UTC(ty, tm - 1, td);
+      return Math.round((tUtc - fUtc) / (1000 * 60 * 60 * 24));
     }
 
-    function renderQuickLinks() {
-      if (!linksWidgetList) return;
-      const links = getStoredLinks();
-      if (links.length === 0) {
-        linksWidgetList.innerHTML = '<li style="font-size: 0.8rem; color: var(--text-muted); padding: 8px 0; font-style: italic;">No links saved. Click "+ Add Link" above.</li>';
+    function renderUpcomingEvents() {
+      const listEl = document.getElementById('upcomingEventsList');
+      if (!listEl) return;
+
+      const todayStr = getLocalTodayIso();
+
+      // Find events that are currently ongoing or in the future
+      const eligible = events.filter((ev) => {
+        const end = ev.endDate || ev.startDate || '';
+        return Boolean(end && end >= todayStr);
+      });
+
+      // Sort soonest first: start date ascending (ongoing events naturally appear first)
+      eligible.sort((a, b) => {
+        const startA = a.startDate || a.endDate || '';
+        const startB = b.startDate || b.endDate || '';
+        if (startA !== startB) {
+          return startA.localeCompare(startB);
+        }
+        const endA = a.endDate || a.startDate || '';
+        const endB = b.endDate || b.startDate || '';
+        return endA.localeCompare(endB);
+      });
+
+      const topThree = eligible.slice(0, 3);
+      const subtitleEl = document.getElementById('upcomingCountSubtitle');
+      if (subtitleEl) {
+        subtitleEl.textContent = topThree.length > 0 ? `${topThree.length} soonest` : 'None';
+      }
+
+      if (topThree.length === 0) {
+        listEl.innerHTML = '<div class="empty-upcoming">No upcoming or ongoing events scheduled.</div>';
         return;
       }
 
-      linksWidgetList.innerHTML = links.map((link) => `
-        <li class="link-item" data-id="${escapeHtml(link.id)}">
-          <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="link-item-anchor" title="${escapeHtml(link.url)}">
-            <span class="link-item-icon">↗</span>
-            <span style="overflow: hidden; text-overflow: ellipsis;">${escapeHtml(link.title)}</span>
-          </a>
-          <button type="button" class="link-item-delete" data-id="${escapeHtml(link.id)}" title="Remove link" aria-label="Delete link">&times;</button>
-        </li>
-      `).join('');
+      listEl.innerHTML = '';
+      topThree.forEach((ev) => {
+        const start = ev.startDate || ev.endDate || '';
+        const end = ev.endDate || ev.startDate || '';
 
-      linksWidgetList.querySelectorAll('.link-item-delete').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const id = e.currentTarget.getAttribute('data-id');
-          const current = getStoredLinks().filter((l) => l.id !== id);
-          saveStoredLinks(current);
-          renderQuickLinks();
+        const isOngoing = (start <= todayStr && end >= todayStr);
+        let badgeHtml = '';
+        if (isOngoing) {
+          const isTodayOnly = (start === todayStr && end === todayStr);
+          badgeHtml = `<span class="status-badge ongoing">${isTodayOnly ? 'Today' : 'Ongoing'}</span>`;
+        } else {
+          const days = getDaysDiff(todayStr, start);
+          const label = days === 1 ? 'Tomorrow' : (days > 0 ? `In ${days}d` : 'Upcoming');
+          badgeHtml = `<span class="status-badge upcoming">${label}</span>`;
+        }
+
+        const chargeFormatted = parseFloat(ev.charge || 0).toLocaleString('en-GB', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
         });
+
+        const item = document.createElement('div');
+        item.className = 'upcoming-item';
+        item.title = 'Click to jump to this event';
+        item.innerHTML = `
+          <div class="upcoming-item-header">
+            <span class="upcoming-item-name">${escapeHtml(ev.name)}</span>
+            ${badgeHtml}
+          </div>
+          <div class="upcoming-item-meta">
+            <span class="upcoming-item-date">${formatHumanDateRange(ev.startDate, ev.endDate)}</span>
+            <span class="upcoming-item-charge">£${chargeFormatted}</span>
+          </div>
+        `;
+
+        item.addEventListener('click', () => {
+          const targetCard = document.getElementById('event-card-' + ev.id);
+          if (targetCard) {
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetCard.classList.remove('flash-highlight');
+            void targetCard.offsetWidth; // trigger reflow
+            targetCard.classList.add('flash-highlight');
+          }
+        });
+
+        listEl.appendChild(item);
       });
     }
 
-    if (addLinkToggleBtn && addLinkForm) {
-      addLinkToggleBtn.addEventListener('click', () => {
-        const isHidden = addLinkForm.style.display === 'none' || !addLinkForm.style.display;
-        addLinkForm.style.display = isHidden ? 'block' : 'none';
-        if (isHidden) {
-          linkTitleInput.value = '';
-          linkUrlInput.value = '';
-          linkTitleInput.focus();
-        }
-      });
-
-      cancelAddLinkBtn.addEventListener('click', () => {
-        addLinkForm.style.display = 'none';
-      });
-
-      addLinkForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = linkTitleInput.value.trim();
-        let url = linkUrlInput.value.trim();
-        if (!title || !url) return;
-
-        if (!/^https?:\/\//i.test(url)) {
-          url = 'https://' + url;
-        }
-
-        const links = getStoredLinks();
-        links.push({
-          id: 'link_' + Date.now(),
-          title,
-          url
-        });
-        saveStoredLinks(links);
-        renderQuickLinks();
-        addLinkForm.style.display = 'none';
-        showToast(`Saved link "${title}"`);
-      });
-
-      renderQuickLinks();
-    }
+    renderUpcomingEvents();
   </script>
 </body>
 </html>
