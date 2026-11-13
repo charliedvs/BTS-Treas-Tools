@@ -129,18 +129,10 @@
       box-sizing: border-box;
     }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
     .header-brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      cursor: pointer;
     }
 
     .brand-title {
@@ -149,38 +141,6 @@
       letter-spacing: -0.02em;
       margin: 0;
       color: var(--text-main);
-    }
-
-    .header-nav {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 3px;
-      background-color: var(--input-bg);
-      border: 1px solid var(--border-color);
-    }
-
-    .nav-tab {
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      font-size: 0.82rem;
-      font-weight: 500;
-      padding: 5px 12px;
-      cursor: pointer;
-      border-radius: 0;
-      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-    }
-
-    .nav-tab:hover {
-      color: var(--text-main);
-    }
-
-    .nav-tab.active {
-      background-color: var(--surface-light);
-      color: var(--text-main);
-      border-color: var(--border-focus);
-      font-weight: 600;
     }
 
     .btn-add-event {
@@ -536,154 +496,147 @@
       animation: card-flash 1.6s ease-out;
     }
 
-    /* Quick Links Page */
-    .quick-links-page {
-      width: 100%;
+    /* Quick Links Widget */
+    .btn-xs {
+      padding: 3px 8px;
+      font-size: 0.74rem;
+      font-weight: 500;
     }
 
-    .quick-links-page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-      min-height: 28px;
-    }
-
-    .quick-links-title-group {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-    }
-
-    .quick-links-title-group h2 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .quick-link-form-panel {
-      background-color: var(--surface);
+    .add-link-form {
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background-color: var(--surface-light);
       border: 1px solid var(--border-color);
-      box-shadow: var(--card-shadow);
-      padding: 18px 20px;
-      margin-bottom: 20px;
-    }
-
-    .quick-link-form-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .quick-link-form-fields {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px;
-    }
-
-    .quick-link-form-fields .form-group {
-      margin-bottom: 0;
-    }
-
-    .quick-link-form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 16px;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .quick-links-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 14px;
-    }
-
-    .quick-link-card {
-      background-color: var(--surface);
-      border: 1px solid var(--border-color);
-      box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
+      gap: 8px;
     }
 
-    .quick-link-card:hover {
+    .add-link-form input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 0.82rem;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    .add-link-form input[type="text"]:focus {
+      outline: none;
       border-color: var(--border-focus);
     }
 
-    .quick-link-main {
+    .add-link-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .links-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      padding: 16px 18px 12px 18px;
+      gap: 3px;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 10px;
+      background-color: transparent;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .link-item:hover {
+      background-color: var(--surface-light);
+      border-color: var(--border-color);
+    }
+
+    .link-item-anchor {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
       text-decoration: none;
-      color: inherit;
+      font-size: 0.84rem;
+      font-weight: 500;
       flex: 1;
       min-width: 0;
     }
 
-    .quick-link-card-top {
+    .link-item-text {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 10px;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
     }
 
-    .quick-link-title {
-      font-size: 0.98rem;
-      font-weight: 600;
-      color: var(--text-main);
-      line-height: 1.3;
-      word-break: break-word;
+    .link-item-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .quick-link-main:hover .quick-link-title {
+    .link-item-anchor:hover .link-item-title {
       text-decoration: underline;
     }
 
-    .quick-link-arrow {
-      font-size: 0.9rem;
+    .link-item-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .link-item-icon {
+      font-size: 0.82rem;
       color: var(--text-muted);
       flex-shrink: 0;
       transition: transform 0.15s ease, color 0.15s ease;
     }
 
-    .quick-link-main:hover .quick-link-arrow {
+    .link-item:hover .link-item-icon {
       color: var(--text-main);
-      transform: translate(2px, -2px);
+      transform: translate(1px, -1px);
     }
 
-    .quick-link-desc {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .quick-link-url {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      opacity: 0.85;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-top: 2px;
-    }
-
-    .quick-link-card-footer {
+    .link-item-actions {
       display: flex;
-      justify-content: flex-end;
       align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      border-top: 1px solid var(--border-color);
-      background-color: var(--surface-light);
+      gap: 4px;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .link-item:hover .link-item-actions,
+    .link-item:focus-within .link-item-actions {
+      opacity: 1;
+    }
+
+    .link-item-delete {
+      background: none;
+      border: none;
+      padding: 2px 5px;
+      font-size: 0.95rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+
+    .link-item-delete:hover {
+      color: var(--danger-text);
     }
 
     button {
@@ -1365,14 +1318,8 @@
     <!-- Top Navigation Header -->
     <header class="app-top-header">
       <div class="top-header-inner">
-        <div class="header-left">
-          <div class="header-brand" id="headerBrandHome" title="Go to Events">
-            <h1 class="brand-title">BTS Treas Tools</h1>
-          </div>
-          <nav class="header-nav" aria-label="Main navigation">
-            <button type="button" id="navEventsBtn" class="nav-tab active" data-page="events">Events</button>
-            <button type="button" id="navQuickLinksBtn" class="nav-tab" data-page="quick-links">Quick Links</button>
-          </nav>
+        <div class="header-brand">
+          <h1 class="brand-title">BTS Treas Tools</h1>
         </div>
         <div class="header-actions">
           <button type="button" id="openSettingsBtn" class="btn-secondary btn-header" title="Settings (Appearance, Templates, Google Automation)">
@@ -1395,7 +1342,7 @@
     </header>
 
     <div class="container">
-      <div id="dashboardPage" class="dashboard-layout">
+      <div class="dashboard-layout">
         <!-- Events Column (Left) -->
         <main class="events-column">
           <section class="events-section">
@@ -1447,48 +1394,29 @@
             </div>
             <textarea id="notesWidgetText" class="notes-textarea" placeholder="Jot down quick treasurer notes, reminders, or pending tasks..." spellcheck="true"></textarea>
           </div>
+
+          <!-- 4. Quick Links Widget (Blank to start) -->
+          <div class="widget links-widget">
+            <div class="widget-header">
+              <h3 class="widget-title">Quick Links</h3>
+              <button type="button" id="toggleAddLinkFormBtn" class="btn-secondary btn-xs" title="Add a custom link bookmark">+ Add Link</button>
+            </div>
+
+            <form id="quickLinkForm" class="add-link-form" style="display: none;">
+              <input type="text" id="quickLinkTitleInput" placeholder="Title (e.g. iplicit)" required>
+              <input type="text" id="quickLinkUrlInput" placeholder="URL (e.g. https://...)" required>
+              <input type="text" id="quickLinkDescInput" placeholder="Note / Description (Optional)">
+              <div class="add-link-actions">
+                <button type="button" id="cancelQuickLinkFormBtn" class="btn-secondary btn-xs">Cancel</button>
+                <button type="submit" id="saveQuickLinkBtn" class="btn-primary btn-xs">Save</button>
+              </div>
+            </form>
+
+            <div id="quickLinksEmptyState" class="empty-upcoming" style="display: none;">No links saved yet. Click "+ Add Link" above.</div>
+            <ul id="linksWidgetList" class="links-list"></ul>
+          </div>
         </aside>
       </div>
-
-      <!-- Quick Links Page -->
-      <section id="quickLinksPage" class="quick-links-page" style="display: none;" aria-label="Quick Links">
-        <div class="quick-links-page-header">
-          <div class="quick-links-title-group">
-            <h2>Quick Links</h2>
-            <span id="quickLinksCountBadge" class="section-count-badge">0 links</span>
-          </div>
-          <div>
-            <button type="button" id="toggleAddLinkFormBtn" class="btn-primary btn-add-event">+ Add Link</button>
-          </div>
-        </div>
-
-        <form id="quickLinkForm" class="quick-link-form-panel" style="display: none;">
-          <div class="quick-link-form-header">
-            <h3 id="quickLinkFormTitle" class="widget-title">Add Quick Link</h3>
-          </div>
-          <div class="quick-link-form-fields">
-            <div class="form-group">
-              <label for="quickLinkTitleInput">Title</label>
-              <input type="text" id="quickLinkTitleInput" required placeholder="e.g. iplicit (Bath SU)">
-            </div>
-            <div class="form-group">
-              <label for="quickLinkUrlInput">URL</label>
-              <input type="text" id="quickLinkUrlInput" required placeholder="e.g. https://app.iplicit.com/bathsu/#view">
-            </div>
-            <div class="form-group">
-              <label for="quickLinkDescInput">Note / Description (Optional)</label>
-              <input type="text" id="quickLinkDescInput" placeholder="e.g. Treasurer invoice approval portal">
-            </div>
-          </div>
-          <div class="quick-link-form-actions">
-            <button type="button" id="cancelQuickLinkFormBtn" class="btn-secondary btn-sm">Cancel</button>
-            <button type="submit" id="saveQuickLinkBtn" class="btn-primary btn-sm">Save Link</button>
-          </div>
-        </form>
-
-        <div id="quickLinksEmptyState" class="empty-state">No quick links saved yet. Click "+ Add Link" above to add your first bookmark.</div>
-        <div id="quickLinksGrid" class="quick-links-grid"></div>
-      </section>
     </div>
   </div>
 
@@ -4041,7 +3969,7 @@
     renderEvents();
 
     // ==========================================
-    // Sidebar Widgets (24hr Clock, Upcoming & Ongoing Events, Notes)
+    // Sidebar Widgets (24hr Clock, Upcoming & Ongoing Events, Notes, Quick Links)
     // ==========================================
     const clockWidgetTime = document.getElementById('clockWidgetTime');
     const clockWidgetDate = document.getElementById('clockWidgetDate');
@@ -4187,27 +4115,17 @@
 
     renderUpcomingEvents();
 
-    // ==========================================
-    // Page Navigation & Quick Links Page
-    // ==========================================
-    const navEventsBtn = document.getElementById('navEventsBtn');
-    const navQuickLinksBtn = document.getElementById('navQuickLinksBtn');
-    const headerBrandHome = document.getElementById('headerBrandHome');
-    const dashboardPage = document.getElementById('dashboardPage');
-    const quickLinksPage = document.getElementById('quickLinksPage');
-
+    // Quick Links Widget (Blank to start)
     const QUICK_LINKS_STORAGE_KEY = 'bts_treas_quick_links';
     const toggleAddLinkFormBtn = document.getElementById('toggleAddLinkFormBtn');
     const quickLinkForm = document.getElementById('quickLinkForm');
-    const quickLinkFormTitle = document.getElementById('quickLinkFormTitle');
     const quickLinkTitleInput = document.getElementById('quickLinkTitleInput');
     const quickLinkUrlInput = document.getElementById('quickLinkUrlInput');
     const quickLinkDescInput = document.getElementById('quickLinkDescInput');
     const cancelQuickLinkFormBtn = document.getElementById('cancelQuickLinkFormBtn');
     const saveQuickLinkBtn = document.getElementById('saveQuickLinkBtn');
     const quickLinksEmptyState = document.getElementById('quickLinksEmptyState');
-    const quickLinksGrid = document.getElementById('quickLinksGrid');
-    const quickLinksCountBadge = document.getElementById('quickLinksCountBadge');
+    const linksWidgetList = document.getElementById('linksWidgetList');
 
     let editingQuickLinkId = null;
 
@@ -4247,53 +4165,25 @@
       }
     }
 
-    /** Switch between the Events dashboard and the Quick Links page. */
-    function switchPage(pageName, updateHistory = true) {
-      const targetPage = pageName === 'quick-links' ? 'quick-links' : 'events';
-      const isQuickLinks = targetPage === 'quick-links';
-
-      if (navEventsBtn) navEventsBtn.classList.toggle('active', !isQuickLinks);
-      if (navQuickLinksBtn) navQuickLinksBtn.classList.toggle('active', isQuickLinks);
-
-      if (dashboardPage) dashboardPage.style.display = isQuickLinks ? 'none' : '';
-      if (quickLinksPage) quickLinksPage.style.display = isQuickLinks ? 'block' : 'none';
-      if (openModalBtn) openModalBtn.style.display = isQuickLinks ? 'none' : '';
-
-      if (updateHistory) {
-        try {
-          const newUrl = isQuickLinks
-            ? window.location.pathname + window.location.search + '#quick-links'
-            : window.location.pathname + window.location.search;
-          window.history.replaceState(null, '', newUrl);
-        } catch (e) {}
-      }
-
-      if (isQuickLinks) {
-        renderQuickLinksPage();
-      }
-    }
-
-    /** Open the inline quick link add/edit panel. */
+    /** Open the inline quick link add/edit form inside the sidebar widget. */
     function openQuickLinkForm(linkToEdit = null) {
       if (!quickLinkForm) return;
       if (linkToEdit) {
         editingQuickLinkId = linkToEdit.id;
-        if (quickLinkFormTitle) quickLinkFormTitle.textContent = 'Edit Quick Link';
-        if (saveQuickLinkBtn) saveQuickLinkBtn.textContent = 'Save Changes';
+        if (saveQuickLinkBtn) saveQuickLinkBtn.textContent = 'Save';
         quickLinkTitleInput.value = linkToEdit.title || '';
         quickLinkUrlInput.value = linkToEdit.url || '';
         quickLinkDescInput.value = linkToEdit.description || '';
       } else {
         editingQuickLinkId = null;
-        if (quickLinkFormTitle) quickLinkFormTitle.textContent = 'Add Quick Link';
-        if (saveQuickLinkBtn) saveQuickLinkBtn.textContent = 'Save Link';
+        if (saveQuickLinkBtn) saveQuickLinkBtn.textContent = 'Add';
         quickLinkForm.reset();
       }
-      quickLinkForm.style.display = 'block';
+      quickLinkForm.style.display = 'flex';
       quickLinkTitleInput.focus();
     }
 
-    /** Close and reset the inline quick link form panel. */
+    /** Close and reset the inline quick link form. */
     function closeQuickLinkForm() {
       if (!quickLinkForm) return;
       editingQuickLinkId = null;
@@ -4301,47 +4191,41 @@
       quickLinkForm.reset();
     }
 
-    /** Render the Quick Links grid or empty state. */
-    function renderQuickLinksPage() {
-      if (!quickLinksGrid || !quickLinksEmptyState) return;
+    /** Render saved quick links or empty state inside the sidebar widget. */
+    function renderQuickLinksWidget() {
+      if (!linksWidgetList || !quickLinksEmptyState) return;
       const links = getStoredQuickLinks();
-
-      if (quickLinksCountBadge) {
-        quickLinksCountBadge.textContent = links.length === 1 ? '1 link' : `${links.length} links`;
-      }
 
       if (links.length === 0) {
         quickLinksEmptyState.style.display = 'block';
-        quickLinksGrid.style.display = 'none';
-        quickLinksGrid.innerHTML = '';
+        linksWidgetList.innerHTML = '';
         return;
       }
 
       quickLinksEmptyState.style.display = 'none';
-      quickLinksGrid.style.display = 'grid';
-      quickLinksGrid.innerHTML = links.map((link) => {
+      linksWidgetList.innerHTML = links.map((link) => {
         const safeUrl = normalizeLinkUrl(link.url) || '#';
+        const tooltip = link.description ? `${link.description} (${safeUrl})` : safeUrl;
         return `
-          <div class="quick-link-card" data-id="${escapeHtml(link.id)}">
-            <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="quick-link-main" title="${escapeHtml(safeUrl)}">
-              <div class="quick-link-card-top">
-                <span class="quick-link-title">${escapeHtml(link.title)}</span>
-                <span class="quick-link-arrow" aria-hidden="true">&#8599;</span>
-              </div>
-              ${link.description ? `<div class="quick-link-desc">${escapeHtml(link.description)}</div>` : ''}
-              <div class="quick-link-url">${escapeHtml(safeUrl)}</div>
+          <li class="link-item" data-id="${escapeHtml(link.id)}">
+            <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="link-item-anchor" title="${escapeHtml(tooltip)}">
+              <span class="link-item-icon" aria-hidden="true">&#8599;</span>
+              <span class="link-item-text">
+                <span class="link-item-title">${escapeHtml(link.title)}</span>
+                ${link.description ? `<span class="link-item-desc">${escapeHtml(link.description)}</span>` : ''}
+              </span>
             </a>
-            <div class="quick-link-card-footer">
-              <button type="button" class="btn-ghost-sm btn-edit-quick-link" data-id="${escapeHtml(link.id)}">Edit</button>
-              <span class="meta-sep">&bull;</span>
-              <button type="button" class="btn-ghost-sm btn-delete btn-delete-quick-link" data-id="${escapeHtml(link.id)}">Delete</button>
+            <div class="link-item-actions">
+              <button type="button" class="btn-ghost-sm btn-edit-quick-link" data-id="${escapeHtml(link.id)}" title="Edit link">Edit</button>
+              <button type="button" class="link-item-delete btn-delete-quick-link" data-id="${escapeHtml(link.id)}" title="Remove link" aria-label="Delete link">&times;</button>
             </div>
-          </div>
+          </li>
         `;
       }).join('');
 
-      quickLinksGrid.querySelectorAll('.btn-edit-quick-link').forEach((btn) => {
+      linksWidgetList.querySelectorAll('.btn-edit-quick-link').forEach((btn) => {
         btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           const id = e.currentTarget.getAttribute('data-id');
           const target = getStoredQuickLinks().find((l) => l.id === id);
           if (target) {
@@ -4350,32 +4234,24 @@
         });
       });
 
-      quickLinksGrid.querySelectorAll('.btn-delete-quick-link').forEach((btn) => {
+      linksWidgetList.querySelectorAll('.btn-delete-quick-link').forEach((btn) => {
         btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           const id = e.currentTarget.getAttribute('data-id');
           const remaining = getStoredQuickLinks().filter((l) => l.id !== id);
           saveStoredQuickLinks(remaining);
           if (editingQuickLinkId === id) {
             closeQuickLinkForm();
           }
-          renderQuickLinksPage();
+          renderQuickLinksWidget();
           showToast('Quick link removed');
         });
       });
     }
 
-    if (navEventsBtn) {
-      navEventsBtn.addEventListener('click', () => switchPage('events'));
-    }
-    if (navQuickLinksBtn) {
-      navQuickLinksBtn.addEventListener('click', () => switchPage('quick-links'));
-    }
-    if (headerBrandHome) {
-      headerBrandHome.addEventListener('click', () => switchPage('events'));
-    }
     if (toggleAddLinkFormBtn) {
       toggleAddLinkFormBtn.addEventListener('click', () => {
-        if (quickLinkForm && quickLinkForm.style.display === 'block' && !editingQuickLinkId) {
+        if (quickLinkForm && quickLinkForm.style.display === 'flex' && !editingQuickLinkId) {
           closeQuickLinkForm();
         } else {
           openQuickLinkForm(null);
@@ -4421,16 +4297,11 @@
         }
 
         closeQuickLinkForm();
-        renderQuickLinksPage();
+        renderQuickLinksWidget();
       });
     }
 
-    window.addEventListener('hashchange', () => {
-      switchPage(window.location.hash === '#quick-links' ? 'quick-links' : 'events', false);
-    });
-
-    renderQuickLinksPage();
-    switchPage(window.location.hash === '#quick-links' ? 'quick-links' : 'events', false);
+    renderQuickLinksWidget();
   </script>
 </body>
 </html>
