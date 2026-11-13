@@ -481,6 +481,19 @@
       text-align: center;
     }
 
+    /* Outstanding Invoices Widget */
+    .outstanding-list {
+      max-height: 280px;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .status-badge.overdue {
+      background-color: var(--danger-bg);
+      color: var(--danger-text);
+      border: 1px solid var(--danger-border);
+    }
+
     @keyframes card-flash {
       0% {
         border-color: #2563eb;
@@ -1384,7 +1397,18 @@
             </div>
           </div>
 
-          <!-- 3. Notes Widget (Expanded Size) -->
+          <!-- 3. Outstanding Invoices Widget -->
+          <div class="widget upcoming-widget outstanding-widget">
+            <div class="widget-header">
+              <h3 class="widget-title">Outstanding Invoices</h3>
+              <span class="widget-subtitle" id="outstandingCountSubtitle">None</span>
+            </div>
+            <div id="outstandingInvoicesList" class="upcoming-list outstanding-list">
+              <div class="empty-upcoming">No outstanding invoices.</div>
+            </div>
+          </div>
+
+          <!-- 4. Notes Widget (Expanded Size) -->
           <div class="widget notes-widget">
             <div class="widget-header">
               <h3 class="widget-title">Notes</h3>
@@ -1395,7 +1419,7 @@
             <textarea id="notesWidgetText" class="notes-textarea" placeholder="Jot down quick treasurer notes, reminders, or pending tasks..." spellcheck="true"></textarea>
           </div>
 
-          <!-- 4. Quick Links Widget (Blank to start) -->
+          <!-- 5. Quick Links Widget (Blank to start) -->
           <div class="widget links-widget">
             <div class="widget-header">
               <h3 class="widget-title">Quick Links</h3>
@@ -3361,6 +3385,7 @@
         eventsList.innerHTML = '';
         eventsList.appendChild(emptyState);
         renderUpcomingEvents();
+        renderOutstandingInvoices();
         return;
       }
 
@@ -3436,6 +3461,7 @@
           if (targetEvent && field) {
             targetEvent[field] = e.target.checked;
             saveEvents();
+            renderOutstandingInvoices();
           }
         });
       });
@@ -3520,8 +3546,9 @@
         });
       });
 
-      // Render the 3 soonest upcoming and/or ongoing events spotlight
+      // Render the sidebar event spotlight & outstanding invoice widgets
       renderUpcomingEvents();
+      renderOutstandingInvoices();
     }
 
     function escapeHtml(str) {
@@ -3969,10 +3996,11 @@
     renderEvents();
 
     // ==========================================
-    // Sidebar Widgets (24hr Clock, Upcoming & Ongoing Events, Notes, Quick Links)
+    // Sidebar Widgets (24hr Clock, Upcoming & Ongoing Events, Outstanding Invoices, Notes, Quick Links)
     // ==========================================
     const clockWidgetTime = document.getElementById('clockWidgetTime');
     const clockWidgetDate = document.getElementById('clockWidgetDate');
+    let lastClockDateIso = getLocalTodayIso();
 
     function updateClockWidget() {
       if (!clockWidgetTime || !clockWidgetDate) return;
@@ -3987,6 +4015,13 @@
         month: 'long',
         year: 'numeric'
       });
+
+      const currentDateIso = getLocalTodayIso();
+      if (currentDateIso !== lastClockDateIso) {
+        lastClockDateIso = currentDateIso;
+        renderUpcomingEvents();
+        renderOutstandingInvoices();
+      }
     }
 
     updateClockWidget();
@@ -4010,7 +4045,7 @@
       });
     }
 
-    // Upcoming & Ongoing Events Widget (Top 3 soonest)
+    // Upcoming & Ongoing Events + Outstanding Invoices Helpers
     function getLocalTodayIso() {
       const now = new Date();
       const y = now.getFullYear();
@@ -4029,6 +4064,52 @@
       return Math.round((tUtc - fUtc) / (1000 * 60 * 60 * 24));
     }
 
+    /** Resolve the effective end date (YYYY-MM-DD) used to determine whether an event has ended. */
+    function getEventEndDateStr(ev) {
+      return ev && (ev.endDate || ev.startDate) ? String(ev.endDate || ev.startDate) : '';
+    }
+
+    /** Return true when an event's date has passed and its invoice is not marked as sent. */
+    function isOutstandingInvoice(ev, todayStr = getLocalTodayIso()) {
+      if (!ev || ev.invoiceSent) return false;
+      const end = getEventEndDateStr(ev);
+      return Boolean(end && end < todayStr);
+    }
+
+    /** Build a clickable sidebar event card that scrolls to and highlights the main event card. */
+    function createSidebarEventItem(ev, badgeHtml, tooltip = 'Click to jump to this event') {
+      const chargeFormatted = parseFloat(ev.charge || 0).toLocaleString('en-GB', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      const item = document.createElement('div');
+      item.className = 'upcoming-item';
+      item.title = tooltip;
+      item.innerHTML = `
+        <div class="upcoming-item-header">
+          <span class="upcoming-item-name">${escapeHtml(ev.name)}</span>
+          ${badgeHtml}
+        </div>
+        <div class="upcoming-item-meta">
+          <span class="upcoming-item-date">${formatHumanDateRange(ev.startDate, ev.endDate)}</span>
+          <span class="upcoming-item-charge">£${chargeFormatted}</span>
+        </div>
+      `;
+
+      item.addEventListener('click', () => {
+        const targetCard = document.getElementById('event-card-' + ev.id);
+        if (targetCard) {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetCard.classList.remove('flash-highlight');
+          void targetCard.offsetWidth; // trigger reflow
+          targetCard.classList.add('flash-highlight');
+        }
+      });
+
+      return item;
+    }
+
     function renderUpcomingEvents() {
       const listEl = document.getElementById('upcomingEventsList');
       if (!listEl) return;
@@ -4037,7 +4118,7 @@
 
       // Find events that are currently ongoing or in the future
       const eligible = events.filter((ev) => {
-        const end = ev.endDate || ev.startDate || '';
+        const end = getEventEndDateStr(ev);
         return Boolean(end && end >= todayStr);
       });
 
@@ -4048,9 +4129,7 @@
         if (startA !== startB) {
           return startA.localeCompare(startB);
         }
-        const endA = a.endDate || a.startDate || '';
-        const endB = b.endDate || b.startDate || '';
-        return endA.localeCompare(endB);
+        return getEventEndDateStr(a).localeCompare(getEventEndDateStr(b));
       });
 
       const topThree = eligible.slice(0, 3);
@@ -4067,7 +4146,7 @@
       listEl.innerHTML = '';
       topThree.forEach((ev) => {
         const start = ev.startDate || ev.endDate || '';
-        const end = ev.endDate || ev.startDate || '';
+        const end = getEventEndDateStr(ev);
 
         const isOngoing = (start <= todayStr && end >= todayStr);
         let badgeHtml = '';
@@ -4080,40 +4159,59 @@
           badgeHtml = `<span class="status-badge upcoming">${label}</span>`;
         }
 
-        const chargeFormatted = parseFloat(ev.charge || 0).toLocaleString('en-GB', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
+        listEl.appendChild(createSidebarEventItem(ev, badgeHtml));
+      });
+    }
 
-        const item = document.createElement('div');
-        item.className = 'upcoming-item';
-        item.title = 'Click to jump to this event';
-        item.innerHTML = `
-          <div class="upcoming-item-header">
-            <span class="upcoming-item-name">${escapeHtml(ev.name)}</span>
-            ${badgeHtml}
-          </div>
-          <div class="upcoming-item-meta">
-            <span class="upcoming-item-date">${formatHumanDateRange(ev.startDate, ev.endDate)}</span>
-            <span class="upcoming-item-charge">£${chargeFormatted}</span>
-          </div>
-        `;
+    /** Render events whose date has passed and whose invoice has not been marked as sent. */
+    function renderOutstandingInvoices() {
+      const listEl = document.getElementById('outstandingInvoicesList');
+      if (!listEl) return;
 
-        item.addEventListener('click', () => {
-          const targetCard = document.getElementById('event-card-' + ev.id);
-          if (targetCard) {
-            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            targetCard.classList.remove('flash-highlight');
-            void targetCard.offsetWidth; // trigger reflow
-            targetCard.classList.add('flash-highlight');
-          }
-        });
+      const todayStr = getLocalTodayIso();
+      const outstanding = events.filter((ev) => isOutstandingInvoice(ev, todayStr));
 
-        listEl.appendChild(item);
+      // Sort oldest overdue first so longest-waiting invoices appear at the top
+      outstanding.sort((a, b) => {
+        const endA = getEventEndDateStr(a);
+        const endB = getEventEndDateStr(b);
+        if (endA !== endB) {
+          return endA.localeCompare(endB);
+        }
+        const startA = a.startDate || a.endDate || '';
+        const startB = b.startDate || b.endDate || '';
+        if (startA !== startB) {
+          return startA.localeCompare(startB);
+        }
+        return (a.createdAt || '').localeCompare(b.createdAt || '');
+      });
+
+      const subtitleEl = document.getElementById('outstandingCountSubtitle');
+      if (subtitleEl) {
+        subtitleEl.textContent = outstanding.length > 0 ? `${outstanding.length} due` : 'None';
+      }
+
+      if (outstanding.length === 0) {
+        listEl.innerHTML = '<div class="empty-upcoming">No outstanding invoices.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      outstanding.forEach((ev) => {
+        const end = getEventEndDateStr(ev);
+        const daysPast = getDaysDiff(end, todayStr);
+        const badgeLabel = daysPast === 1 ? '1d overdue' : `${daysPast}d overdue`;
+        const badgeHtml = `<span class="status-badge overdue">${badgeLabel}</span>`;
+        const tooltip = ev.clientName
+          ? `${ev.clientName} — Click to jump to this event`
+          : 'Click to jump to this event';
+
+        listEl.appendChild(createSidebarEventItem(ev, badgeHtml, tooltip));
       });
     }
 
     renderUpcomingEvents();
+    renderOutstandingInvoices();
 
     // Quick Links Widget (Blank to start)
     const QUICK_LINKS_STORAGE_KEY = 'bts_treas_quick_links';
