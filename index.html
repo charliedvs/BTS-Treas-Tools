@@ -770,11 +770,171 @@
       display: none;
     }
 
-    /* Event List / Empty State */
+    /* Event List / Filters / Empty State */
     .events-section h2 {
       font-size: 1.05rem;
       font-weight: 600;
       margin-bottom: 12px;
+    }
+
+    .events-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      background-color: var(--surface);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--card-shadow);
+    }
+
+    .events-toolbar-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .events-search-input {
+      flex: 1;
+      min-width: 190px;
+      padding: 7px 10px !important;
+      font-size: 0.84rem !important;
+    }
+
+    .events-year-select {
+      width: auto !important;
+      min-width: 155px;
+      padding: 7px 10px !important;
+      font-size: 0.84rem !important;
+      cursor: pointer;
+    }
+
+    .filter-chips-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      background-color: var(--surface-light);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .filter-chip:hover {
+      color: var(--text-main);
+      border-color: var(--border-focus);
+    }
+
+    .filter-chip.active {
+      background-color: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+      border-color: var(--btn-primary-bg);
+      font-weight: 600;
+    }
+
+    .suggestion-btn {
+      background: transparent;
+      border: 1px solid var(--border-focus);
+      color: var(--text-main);
+      padding: 1px 7px;
+      font-size: 0.74rem;
+      margin-left: 6px;
+      cursor: pointer;
+    }
+
+    .suggestion-btn:hover {
+      background-color: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+    }
+
+    /* Directory Manager Modal */
+    .directory-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 20px;
+      background-color: var(--surface-light);
+    }
+
+    .directory-tab {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 14px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .directory-tab:hover {
+      color: var(--text-main);
+    }
+
+    .directory-tab.active {
+      color: var(--text-main);
+      border-bottom-color: var(--border-focus);
+      font-weight: 600;
+    }
+
+    .directory-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .directory-list {
+      max-height: 290px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg);
+    }
+
+    .directory-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.83rem;
+    }
+
+    .directory-row:last-child {
+      border-bottom: none;
+    }
+
+    .directory-row-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .directory-row-title {
+      font-weight: 600;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+
+    .directory-row-meta {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      word-break: break-word;
+    }
+
+    .directory-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     .empty-state {
@@ -1066,6 +1226,8 @@
     input[type="text"],
     input[type="number"],
     input[type="date"],
+    input[type="search"],
+    input[type="email"],
     select {
       width: 100%;
       padding: 9px 12px;
@@ -1079,13 +1241,17 @@
     }
 
     input[type="text"]::placeholder,
-    input[type="number"]::placeholder {
+    input[type="number"]::placeholder,
+    input[type="search"]::placeholder,
+    input[type="email"]::placeholder {
       color: var(--input-placeholder);
     }
 
     input[type="text"]:focus,
     input[type="number"]:focus,
     input[type="date"]:focus,
+    input[type="search"]:focus,
+    input[type="email"]:focus,
     select:focus {
       border-color: var(--input-focus);
     }
@@ -1363,6 +1529,23 @@
               <h2>Events</h2>
               <span id="eventsCountBadge" class="section-count-badge">0 events</span>
             </div>
+            <div id="eventsToolbar" class="events-toolbar" aria-label="Search and filter events">
+              <div class="events-toolbar-top">
+                <input type="search" id="eventSearchInput" class="events-search-input" placeholder="Search event, client, contact, or INV-..." aria-label="Search events">
+                <select id="academicYearSelect" class="events-year-select" aria-label="Filter by academic year">
+                  <option value="all">All Academic Years</option>
+                </select>
+                <button type="button" id="clearEventFiltersBtn" class="btn-secondary btn-xs" style="display: none;">Clear</button>
+              </div>
+              <div id="eventFilterChips" class="filter-chips-row" role="group" aria-label="Filter events by status or type">
+                <button type="button" class="filter-chip active" data-filter="all">All</button>
+                <button type="button" class="filter-chip" data-filter="upcoming">Upcoming</button>
+                <button type="button" class="filter-chip" data-filter="past">Past</button>
+                <button type="button" class="filter-chip" data-filter="outstanding">Outstanding</button>
+                <button type="button" class="filter-chip" data-filter="blue_form">Blue Form</button>
+                <button type="button" class="filter-chip" data-filter="invoice">Invoice</button>
+              </div>
+            </div>
             <div id="eventsList" class="events-list">
               <div id="emptyState" class="empty-state">No events recorded yet. Click "+ Add Event" to create one.</div>
             </div>
@@ -1468,7 +1651,14 @@
         <div class="form-group">
           <label for="contactName">Contact Name (Optional)</label>
           <input type="text" id="contactName" placeholder="e.g. Jane Doe">
-          <div class="field-hint">Primary contact or representative for this event.</div>
+          <div id="contactNameHint" class="field-hint">Primary contact or representative for this event.</div>
+        </div>
+
+        <div id="saveExternalClientWrap" style="display: none; margin-top: -6px; margin-bottom: 14px;">
+          <label class="checkbox-label" style="font-size: 0.82rem; color: var(--text-muted);">
+            <input type="checkbox" id="saveExternalClientChk">
+            Save external client &amp; contact to directory
+          </label>
         </div>
 
         <div class="form-group">
@@ -1565,10 +1755,10 @@
                 <label for="nextInvoiceNumberInput" style="margin-bottom: 0; color: var(--text-main); font-size: 0.82rem;">Next Invoice Number:</label>
                 <input type="number" id="nextInvoiceNumberInput" min="1" step="1" style="width: 75px; padding: 4px 8px; font-size: 0.82rem;" value="1">
               </div>
-              <button type="button" id="resetInvoiceNumbersBtn" class="btn-secondary btn-sm" style="color: var(--danger-text);" title="Wipe all assigned invoice numbers and reset the central counter to 0001">Reset to 0001</button>
+              <button type="button" id="resetInvoiceNumbersBtn" class="btn-secondary btn-sm" style="color: var(--danger-text);" title="Wipe all assigned invoice numbers and start back at 0001">Reset to 0001</button>
             </div>
             <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.35;">
-              Invoice numbers are allocated centrally by Google Apps Script so multiple devices cannot issue duplicates.
+              Stored locally in this browser (1 &rarr; INV0001). Export a JSON backup below before switching devices or handover.
             </div>
           </div>
         </div>
@@ -1595,6 +1785,21 @@
               <button type="submit" class="btn-primary btn-sm">Save Drive Folder</button>
             </div>
           </form>
+        </div>
+
+        <!-- Clients & Societies Directory -->
+        <div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Clients &amp; Societies Directory</div>
+          <div style="padding: 12px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+            <div id="directorySummaryText" style="font-size: 0.8rem; color: var(--text-main);">Loading directory...</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="openSocietiesManagerBtn" class="btn-secondary btn-sm">Manage Societies</button>
+              <button type="button" id="openExternalClientsManagerBtn" class="btn-secondary btn-sm">Manage External Clients</button>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+              Add or edit Blue Form societies &amp; department codes, or save external invoice clients with default contacts.
+            </div>
+          </div>
         </div>
 
         <!-- Data Backup & Restore -->
@@ -1646,6 +1851,85 @@
           </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Clients & Societies Directory Modal -->
+  <div id="directoryModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="directoryModalTitle">
+    <div class="modal-dialog" style="max-width: 660px;">
+      <div class="modal-header">
+        <h2 id="directoryModalTitle">Clients &amp; Societies Directory</h2>
+        <button id="closeDirectoryModalBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="directory-tabs" role="tablist">
+        <button type="button" id="tabSocietiesBtn" class="directory-tab active" role="tab" aria-selected="true">Blue Form Societies</button>
+        <button type="button" id="tabExternalClientsBtn" class="directory-tab" role="tab" aria-selected="false">Saved External Clients</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- Tab 1: Editable Societies -->
+        <div id="societiesManagerPanel" style="display: flex; flex-direction: column; gap: 12px;">
+          <form id="societyEditForm" style="padding: 12px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+            <div class="directory-form-grid">
+              <div>
+                <label for="societyNameInput" style="font-size: 0.78rem; margin-bottom: 4px;">Society Name</label>
+                <input type="text" id="societyNameInput" required placeholder="e.g. Robotics Society (BotSoc)">
+              </div>
+              <div>
+                <label for="societyCodeInput" style="font-size: 0.78rem; margin-bottom: 4px;">Department Code</label>
+                <input type="text" id="societyCodeInput" required placeholder="e.g. ROB">
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+              <button type="button" id="cancelSocietyEditBtn" class="btn-secondary btn-xs" style="display: none;">Cancel Edit</button>
+              <button type="submit" id="saveSocietyBtn" class="btn-primary btn-xs">Add Society</button>
+            </div>
+          </form>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <input type="search" id="societySearchInput" class="events-search-input" placeholder="Filter societies or codes..." aria-label="Filter societies">
+            <button type="button" id="resetSocietiesBtn" class="btn-secondary btn-xs" style="color: var(--danger-text);" title="Restore the default Bath SU societies directory">Reset Defaults</button>
+          </div>
+
+          <div id="societiesManagerList" class="directory-list"></div>
+        </div>
+
+        <!-- Tab 2: Saved External Clients -->
+        <div id="externalClientsManagerPanel" style="display: none; flex-direction: column; gap: 12px;">
+          <form id="externalClientEditForm" style="padding: 12px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+            <div class="directory-form-grid">
+              <div>
+                <label for="extClientNameInput" style="font-size: 0.78rem; margin-bottom: 4px;">Client / Organisation Name</label>
+                <input type="text" id="extClientNameInput" required placeholder="e.g. SU Bars">
+              </div>
+              <div>
+                <label for="extClientContactInput" style="font-size: 0.78rem; margin-bottom: 4px;">Default Contact Name</label>
+                <input type="text" id="extClientContactInput" placeholder="e.g. Mike Dalton">
+              </div>
+              <div>
+                <label for="extClientEmailInput" style="font-size: 0.78rem; margin-bottom: 4px;">Email (Optional)</label>
+                <input type="email" id="extClientEmailInput" placeholder="e.g. accounts@example.com">
+              </div>
+              <div>
+                <label for="extClientAddressInput" style="font-size: 0.78rem; margin-bottom: 4px;">Billing Note / Address (Optional)</label>
+                <input type="text" id="extClientAddressInput" placeholder="e.g. Norwood House, Bath">
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+              <button type="button" id="cancelExtClientEditBtn" class="btn-secondary btn-xs" style="display: none;">Cancel Edit</button>
+              <button type="submit" id="saveExtClientBtn" class="btn-primary btn-xs">Save External Client</button>
+            </div>
+          </form>
+
+          <input type="search" id="externalClientSearchInput" class="events-search-input" placeholder="Search saved external clients..." aria-label="Search external clients">
+
+          <div id="externalClientsManagerList" class="directory-list"></div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 4px; padding-top: 12px;">
+          <span id="directoryModalCount" class="field-hint" style="margin-top: 0;"></span>
+          <button type="button" id="closeDirectoryModalBottomBtn" class="btn-secondary btn-sm">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1790,10 +2074,12 @@
     }
 
     // ==========================================
-    // 3. Built-in Societies & Department Codes
-    //    (Embedded from societies.csv)
+    // 3. Societies & External Clients Directory
     // ==========================================
-    const SOCIETIES_DATA = [
+    const SOCIETIES_STORAGE_KEY = 'treastrack_societies_list';
+    const EXTERNAL_CLIENTS_STORAGE_KEY = 'treastrack_external_clients';
+
+    const DEFAULT_SOCIETIES_DATA = [
       ["Asian Music Society", "ASM"],
       ["Bath Altsoc", "ALT"],
       ["Backstage Technical Services (BTS)", "BTS/BAC"],
@@ -1950,14 +2236,16 @@
         .trim();
     }
 
-    const INDEXED_SOCIETIES = SOCIETIES_DATA.map(([name, code]) => {
-      const upperName = name.toUpperCase();
+    /** Build normalized matching metadata for a society name & code pair. */
+    function buildSocietyIndexEntry(name, code) {
+      const cleanName = String(name || '').trim();
+      const cleanCode = String(code || '').trim().toUpperCase();
+      const upperName = cleanName.toUpperCase();
       const compactName = upperName.replace(/[^A-Z0-9]/g, '');
-      const upperCode = code.toUpperCase().trim();
 
       // Extract parenthetical aliases e.g. "(BUSMS)", "(M.E.M.E.S)" and dash prefix e.g. "ABACUS - ..."
       const aliases = [];
-      const parenMatches = name.matchAll(/\(([^)]+)\)/g);
+      const parenMatches = cleanName.matchAll(/\(([^)]+)\)/g);
       for (const match of parenMatches) {
         const rawAlias = match[1].trim().toUpperCase();
         if (rawAlias) {
@@ -1968,8 +2256,8 @@
           }
         }
       }
-      if (name.includes(' - ')) {
-        const dashPrefix = name.split(' - ')[0].trim().toUpperCase();
+      if (cleanName.includes(' - ')) {
+        const dashPrefix = cleanName.split(' - ')[0].trim().toUpperCase();
         if (dashPrefix) {
           aliases.push(dashPrefix);
           const compactPrefix = dashPrefix.replace(/[^A-Z0-9]/g, '');
@@ -1979,38 +2267,246 @@
         }
       }
 
-      // Extract name without parenthetical suffix
       const baseName = upperName.replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
       const compactBaseName = baseName.replace(/[^A-Z0-9]/g, '');
-      const coreName = stripSocietyBoilerplate(name);
-      const codeParts = upperCode.split('/').map((c) => c.trim()).filter(Boolean);
+      const coreName = stripSocietyBoilerplate(cleanName);
+      const codeParts = cleanCode.split('/').map((c) => c.trim()).filter(Boolean);
 
       return {
-        name,
-        code,
+        name: cleanName,
+        code: cleanCode,
         upperName,
         compactName,
         baseName,
         compactBaseName,
         coreName,
-        upperCode,
+        upperCode: cleanCode,
         codeParts,
         aliases
       };
-    });
+    }
 
-    // Populate datalist for Client Name autocomplete
-    (function populateSocietiesDatalist() {
+    /** Load the editable societies list, falling back to DEFAULT_SOCIETIES_DATA. */
+    function getEffectiveSocieties() {
+      try {
+        const raw = localStorage.getItem(SOCIETIES_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .filter((s) => s && typeof s.name === 'string' && typeof s.code === 'string' && s.name.trim() && s.code.trim())
+              .map((s) => ({ name: s.name.trim(), code: s.code.trim().toUpperCase() }));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed reading custom societies:', err);
+      }
+      return DEFAULT_SOCIETIES_DATA.map(([name, code]) => ({ name, code }));
+    }
+
+    /** Persist the edited societies list and rebuild autocomplete & event indices. */
+    function saveSocietiesList(list) {
+      try {
+        localStorage.setItem(SOCIETIES_STORAGE_KEY, JSON.stringify(list));
+      } catch (err) {
+        showToast('Could not save societies list (storage error).', 5000);
+      }
+      rebuildSocietiesIndex();
+    }
+
+    /** Reset the societies directory back to the built-in default entries. */
+    function resetSocietiesToDefaults() {
+      try {
+        localStorage.removeItem(SOCIETIES_STORAGE_KEY);
+      } catch (err) {}
+      rebuildSocietiesIndex();
+    }
+
+    /** Load saved external invoice clients from localStorage. */
+    function getStoredExternalClients() {
+      try {
+        const raw = localStorage.getItem(EXTERNAL_CLIENTS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed.filter((c) => c && typeof c.name === 'string' && c.name.trim());
+          }
+        }
+      } catch (err) {
+        console.warn('Failed reading external clients:', err);
+      }
+      return [];
+    }
+
+    /** Save external invoice clients array and refresh client datalist. */
+    function saveStoredExternalClients(clients) {
+      try {
+        localStorage.setItem(EXTERNAL_CLIENTS_STORAGE_KEY, JSON.stringify(clients));
+      } catch (err) {
+        showToast('Could not save external clients (storage error).', 5000);
+      }
+      populateSocietiesDatalist();
+    }
+
+    /** Find a saved external client by exact case-insensitive name. */
+    function findExternalClientByName(clientName) {
+      if (!clientName || !clientName.trim()) return null;
+      const needle = clientName.trim().toLowerCase();
+      return getStoredExternalClients().find((c) => c.name.trim().toLowerCase() === needle) || null;
+    }
+
+    /** Create or update a saved external client entry by name. */
+    function upsertExternalClient({ id = null, name, contactName = '', email = '', address = '' }) {
+      const cleanName = String(name || '').trim();
+      if (!cleanName) return null;
+      const list = getStoredExternalClients();
+      let existing = id ? list.find((c) => c.id === id) : null;
+      if (!existing) {
+        existing = list.find((c) => c.name.trim().toLowerCase() === cleanName.toLowerCase()) || null;
+      }
+      if (existing) {
+        existing.name = cleanName;
+        if (contactName !== undefined) existing.contactName = String(contactName || '').trim();
+        if (email !== undefined && email !== null) existing.email = String(email).trim();
+        if (address !== undefined && address !== null) existing.address = String(address).trim();
+      } else {
+        existing = {
+          id: 'ext_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          name: cleanName,
+          contactName: String(contactName || '').trim(),
+          email: String(email || '').trim(),
+          address: String(address || '').trim()
+        };
+        list.push(existing);
+      }
+      saveStoredExternalClients(list);
+      return existing;
+    }
+
+    let INDEXED_SOCIETIES = [];
+
+    /** Rebuild indexed society lookup array and refresh Client Name autocomplete. */
+    function rebuildSocietiesIndex() {
+      INDEXED_SOCIETIES = getEffectiveSocieties().map(({ name, code }) => buildSocietyIndexEntry(name, code));
+      populateSocietiesDatalist();
+    }
+
+    /** Populate shared Client Name datalist with both Blue Form societies and Saved External Clients. */
+    function populateSocietiesDatalist() {
       const datalist = document.getElementById('societiesDatalist');
       if (!datalist) return;
       datalist.innerHTML = '';
       for (const item of INDEXED_SOCIETIES) {
         const opt = document.createElement('option');
         opt.value = item.name;
-        opt.textContent = item.code;
+        opt.textContent = `${item.code} (Blue Form)`;
         datalist.appendChild(opt);
       }
-    })();
+      for (const ext of getStoredExternalClients()) {
+        const opt = document.createElement('option');
+        opt.value = ext.name;
+        opt.textContent = ext.contactName ? `External • ${ext.contactName}` : 'External Client (Invoice)';
+        datalist.appendChild(opt);
+      }
+    }
+
+    rebuildSocietiesIndex();
+
+    /** Compute Levenshtein edit distance for close society typo/alias suggestions. */
+    function editDistance(a, b) {
+      if (a === b) return 0;
+      const m = a.length;
+      const n = b.length;
+      if (!m) return n;
+      if (!n) return m;
+      const dp = Array.from({ length: n + 1 }, (_, j) => j);
+      for (let i = 1; i <= m; i++) {
+        let prev = i - 1;
+        dp[0] = i;
+        for (let j = 1; j <= n; j++) {
+          const temp = dp[j];
+          dp[j] = a[i - 1] === b[j - 1]
+            ? prev
+            : 1 + Math.min(prev, dp[j], dp[j - 1]);
+          prev = temp;
+        }
+      }
+      return dp[n];
+    }
+
+    /** Suggest a close matching society when an entered name is almost a match (e.g. "BUSM" -> "BUSMS"). */
+    function findClosestSocietySuggestion(rawQuery) {
+      const clean = (rawQuery || '').trim();
+      if (clean.length < 2) return null;
+      const upper = clean.toUpperCase().replace(/\s+/g, ' ');
+      const compact = upper.replace(/[^A-Z0-9]/g, '');
+      const queryCore = stripSocietyBoilerplate(clean);
+      const queryTokens = queryCore
+        ? queryCore.split(' ').filter((t) => t.length >= 3 && !['AND', 'FOR'].includes(t))
+        : [];
+      if (compact.length < 2) return null;
+
+      let best = null;
+      let bestScore = Infinity;
+
+      for (const item of INDEXED_SOCIETIES) {
+        const candidates = [
+          ...item.aliases,
+          ...item.codeParts,
+          item.coreName,
+          item.baseName
+        ].filter(Boolean);
+
+        for (const cand of candidates) {
+          const candCompact = cand.replace(/[^A-Z0-9]/g, '');
+          if (!candCompact) continue;
+
+          if (candCompact.includes(compact) && compact.length >= 3) {
+            const score = candCompact.length - compact.length;
+            if (score < bestScore) {
+              bestScore = score;
+              best = item;
+            }
+            continue;
+          }
+
+          if (queryCore && item.coreName && (item.coreName.includes(queryCore) || queryCore.includes(item.coreName))) {
+            const score = Math.abs(item.coreName.length - queryCore.length);
+            if (score < bestScore) {
+              bestScore = score;
+              best = item;
+            }
+            continue;
+          }
+
+          const maxLen = Math.max(compact.length, candCompact.length);
+          if (maxLen <= 12 && Math.abs(compact.length - candCompact.length) <= 2) {
+            const dist = editDistance(compact, candCompact);
+            if (dist <= 1 || (maxLen >= 5 && dist <= 2)) {
+              const score = dist * 2;
+              if (score < bestScore) {
+                bestScore = score;
+                best = item;
+              }
+            }
+          }
+        }
+
+        // Token containment check for multi-word queries like "Latin Ballroom" -> "Latin and Ballroom"
+        if (queryTokens.length >= 2) {
+          const hay = ` ${item.coreName} ${item.aliases.join(' ')} `;
+          if (queryTokens.every((tok) => hay.includes(tok))) {
+            const score = item.coreName.length;
+            if (score < bestScore) {
+              bestScore = score;
+              best = item;
+            }
+          }
+        }
+      }
+
+      return best;
+    }
 
     function findSocietyRecordForClient(clientName) {
       if (!clientName || !clientName.trim()) return null;
@@ -2616,29 +3112,16 @@
         return;
       }
 
-      // 1. Central Invoice Number allocation via Google Apps Script (reuses existing number if regenerating)
+      // 1. Local Invoice Number (stored in this browser; starts at 0001, increments per new invoice)
       let invoiceNumber = eventObj.invoiceNumber;
       if (!invoiceNumber) {
-        let localSeed = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10);
-        if (isNaN(localSeed) || localSeed < 1) localSeed = 1;
-
-        const allocRes = await callAppsScriptBackend('allocateInvoiceNumber', { minNextNumber: localSeed }, resolvedAuth);
-        if (!allocRes.success || !allocRes.invoiceNumber) {
-          const isOldDeployment = /Missing PDF data/i.test(allocRes.error || '');
-          const errMsg = isOldDeployment
-            ? 'Backend update needed: please redeploy google-apps-script.js (v2) to enable central invoice numbering.'
-            : ('Could not allocate invoice number: ' + (allocRes.error || 'Unknown backend error'));
-          showToast(errMsg, 7000);
-          return;
-        }
-
-        invoiceNumber = String(allocRes.invoiceNumber);
+        let nextNum = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10);
+        if (isNaN(nextNum) || nextNum < 1) nextNum = 1;
+        invoiceNumber = String(nextNum).padStart(4, '0');
         eventObj.invoiceNumber = invoiceNumber;
-        if (allocRes.nextInvoiceNumber) {
-          try {
-            localStorage.setItem('treastrack_next_invoice_number', String(allocRes.nextInvoiceNumber));
-          } catch (storageErr) {}
-        }
+        try {
+          localStorage.setItem('treastrack_next_invoice_number', String(nextNum + 1));
+        } catch (storageErr) {}
         saveEvents();
       }
 
@@ -3245,69 +3728,29 @@
       if (nextInvoiceNumberInput) {
         nextInvoiceNumberInput.value = localStorage.getItem('treastrack_next_invoice_number') || '1';
       }
-      settingsModalBackdrop.classList.add('open');
-
-      // Silently refresh the live central counter if a valid Google session token is already available
-      const existingAuth = getStoredBackendToken();
-      if (existingAuth) {
-        const localSeed = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10) || 1;
-        callAppsScriptBackend('getInvoiceCounter', { minNextNumber: localSeed }, existingAuth).then((res) => {
-          if (res && res.success && res.nextInvoiceNumber) {
-            try {
-              localStorage.setItem('treastrack_next_invoice_number', String(res.nextInvoiceNumber));
-            } catch (err) {}
-            if (nextInvoiceNumberInput && settingsModalBackdrop.classList.contains('open')) {
-              nextInvoiceNumberInput.value = String(res.nextInvoiceNumber);
-            }
-          }
-        });
+      if (typeof updateDirectorySummary === 'function') {
+        updateDirectorySummary();
       }
+      settingsModalBackdrop.classList.add('open');
     }
 
     const nextInvoiceNumberInput = document.getElementById('nextInvoiceNumberInput');
     if (nextInvoiceNumberInput) {
-      nextInvoiceNumberInput.addEventListener('change', async (e) => {
+      nextInvoiceNumberInput.addEventListener('change', (e) => {
         const val = parseInt(e.target.value, 10);
-        if (isNaN(val) || val < 1) return;
-
-        const auth = await ensureBackendAuthToken();
-        if (!auth) {
-          showToast('Google Sign-In required to update the central invoice counter.', 5000);
-          e.target.value = localStorage.getItem('treastrack_next_invoice_number') || '1';
-          return;
+        if (!isNaN(val) && val >= 1) {
+          try {
+            localStorage.setItem('treastrack_next_invoice_number', String(val));
+          } catch (err) {}
+          showToast(`Next invoice number set to ${String(val).padStart(4, '0')}.`);
         }
-
-        const res = await callAppsScriptBackend('setInvoiceNumber', { nextInvoiceNumber: val }, auth);
-        if (!res || !res.success) {
-          showToast('Could not update central counter: ' + (res && res.error ? res.error : 'Redeploy google-apps-script.js (v2).'), 6000);
-          e.target.value = localStorage.getItem('treastrack_next_invoice_number') || '1';
-          return;
-        }
-
-        try {
-          localStorage.setItem('treastrack_next_invoice_number', String(res.nextInvoiceNumber));
-        } catch (err) {}
-        showToast(`Central next invoice number set to ${String(res.nextInvoiceNumber).padStart(4, '0')}.`);
       });
     }
 
     const resetInvoiceNumbersBtn = document.getElementById('resetInvoiceNumbersBtn');
     if (resetInvoiceNumbersBtn) {
-      resetInvoiceNumbersBtn.addEventListener('click', async () => {
-        if (!confirm('Are you sure you want to reset central invoice numbering back to 0001 and clear existing invoice numbers on all events?')) return;
-
-        const auth = await ensureBackendAuthToken();
-        if (!auth) {
-          showToast('Google Sign-In required to reset the central invoice counter.', 5000);
-          return;
-        }
-
-        const res = await callAppsScriptBackend('resetInvoiceNumbers', {}, auth);
-        if (!res || !res.success) {
-          showToast('Could not reset central counter: ' + (res && res.error ? res.error : 'Redeploy google-apps-script.js (v2).'), 6000);
-          return;
-        }
-
+      resetInvoiceNumbersBtn.addEventListener('click', () => {
+        if (!confirm('Are you sure you want to reset local invoice numbering back to 0001 and clear existing invoice numbers on all events?')) return;
         try {
           localStorage.setItem('treastrack_next_invoice_number', '1');
         } catch (err) {}
@@ -3317,7 +3760,7 @@
         });
         saveEvents();
         renderEvents();
-        showToast('✓ All invoice numbers cleared. Central counter reset to 0001.');
+        showToast('✓ All invoice numbers cleared. Counter reset to 0001.');
       });
     }
 
@@ -3347,22 +3790,14 @@
         googleTestStatus.textContent = '✗ Google Sign-In (treas@bts-crew.com) is required to verify backend access.';
         return;
       }
-      const localSeed = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10) || 1;
-      const res = await callAppsScriptBackend('status', { minNextNumber: localSeed }, auth);
+      const res = await callAppsScriptBackend('status', {}, auth);
       if (res && res.success && res.scriptVersion >= 2) {
-        if (res.nextInvoiceNumber) {
-          try {
-            localStorage.setItem('treastrack_next_invoice_number', String(res.nextInvoiceNumber));
-          } catch (err) {}
-          if (nextInvoiceNumberInput) nextInvoiceNumberInput.value = String(res.nextInvoiceNumber);
-        }
-        const invLabel = String(res.nextInvoiceNumber || 1).padStart(4, '0');
         const gmailNote = res.hasAdvancedGmail ? 'Advanced Gmail API: Enabled' : 'GmailApp fallback active';
         googleTestStatus.textContent =
-          `✓ Connected to Apps Script v${res.scriptVersion} as ${res.email || AUTHORIZED_EMAIL}.\nNext central invoice: INV-${invLabel} (${gmailNote}).`;
+          `✓ Connected to Apps Script v${res.scriptVersion} as ${res.email || AUTHORIZED_EMAIL} (${gmailNote}).`;
       } else if (res && /Missing PDF data/i.test(res.error || '')) {
         googleTestStatus.textContent =
-          '⚠ Apps Script is reachable, but still running old v1 code.\nCopy google-apps-script.js into script.google.com and deploy a New version to enable security & central numbering.';
+          '⚠ Apps Script is reachable, but still running old v1 code.\nCopy google-apps-script.js into script.google.com and deploy a New version to enable security verification.';
       } else {
         googleTestStatus.textContent = '✗ ' + (res && res.error ? res.error : 'Could not verify Google Apps Script connection.');
       }
@@ -3400,6 +3835,18 @@
 
     let editingEventId = null;
     const activeGenerationMap = new Map();
+    const eventSearchInput = document.getElementById('eventSearchInput');
+    const academicYearSelect = document.getElementById('academicYearSelect');
+    const clearEventFiltersBtn = document.getElementById('clearEventFiltersBtn');
+    const eventFilterChips = document.getElementById('eventFilterChips');
+    const contactNameInput = document.getElementById('contactName');
+    const saveExternalClientWrap = document.getElementById('saveExternalClientWrap');
+    const saveExternalClientChk = document.getElementById('saveExternalClientChk');
+    let activeEventFilter = 'all';
+    let activeAcademicYear = 'all';
+    let activeSearchQuery = '';
+    let lastAutoFilledContact = '';
+
     let events = [];
     try {
       const stored = localStorage.getItem('treastrack_events');
@@ -3454,24 +3901,155 @@
       });
     }
 
-    function updateClientCodeHint() {
+    /** Update the client hint, auto-fill saved external contact details, or offer close society suggestions. */
+    function updateClientCodeHint(allowAutoFill = true) {
       const val = clientNameInput.value.trim();
       if (!val) {
         clientCodeHint.textContent = '';
         clientCodeHint.classList.remove('unlisted');
+        if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'none';
+        if (saveExternalClientChk) saveExternalClientChk.checked = false;
         return;
       }
+
       const record = findSocietyRecordForClient(val);
       if (record) {
-        clientCodeHint.textContent = `Department Code: ${record.code} (${record.name})`;
+        clientCodeHint.textContent = `Department Code: ${record.code} (${record.name}) — Blue Form enabled`;
         clientCodeHint.classList.remove('unlisted');
+        if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'none';
+        if (saveExternalClientChk) saveExternalClientChk.checked = false;
+        return;
+      }
+
+      const extClient = findExternalClientByName(val);
+      if (extClient) {
+        const metaParts = ['Saved external client — Invoice enabled'];
+        if (extClient.contactName) metaParts.push(`Contact: ${extClient.contactName}`);
+        if (extClient.email) metaParts.push(extClient.email);
+        clientCodeHint.textContent = metaParts.join(' • ');
+        clientCodeHint.classList.remove('unlisted');
+
+        if (allowAutoFill && contactNameInput && extClient.contactName) {
+          const currentContact = contactNameInput.value.trim();
+          if (!currentContact || currentContact === lastAutoFilledContact) {
+            contactNameInput.value = extClient.contactName;
+            lastAutoFilledContact = extClient.contactName;
+          }
+        }
+        if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'block';
+        return;
+      }
+
+      const suggestion = findClosestSocietySuggestion(val);
+      if (suggestion) {
+        clientCodeHint.innerHTML =
+          `Client not listed — Invoice enabled. Did you mean <strong>${escapeHtml(suggestion.name)}</strong> (${escapeHtml(suggestion.code)})?` +
+          `<button type="button" id="applySocietySuggestionBtn" class="suggestion-btn">Use</button>`;
+        const applyBtn = document.getElementById('applySocietySuggestionBtn');
+        if (applyBtn) {
+          applyBtn.addEventListener('click', () => {
+            clientNameInput.value = suggestion.name;
+            updateClientCodeHint(true);
+            clientNameInput.focus();
+          });
+        }
       } else {
         clientCodeHint.textContent = 'Client not listed — Invoice enabled, Blue Form disabled';
-        clientCodeHint.classList.add('unlisted');
+      }
+      clientCodeHint.classList.add('unlisted');
+      if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'block';
+    }
+
+    clientNameInput.addEventListener('input', () => updateClientCodeHint(true));
+
+    /** Derive UK academic year label ("YYYY–YYYY", Aug 1 to Jul 31) from YYYY-MM-DD. */
+    function getAcademicYearForDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = String(dateStr).trim().split('-');
+      if (parts.length !== 3) return '';
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return '';
+      const startYear = m >= 8 ? y : (y - 1);
+      return `${startYear}–${startYear + 1}`;
+    }
+
+    function getEventAcademicYear(ev) {
+      return getAcademicYearForDate(ev && (ev.startDate || ev.endDate));
+    }
+
+    function hasActiveEventFilters() {
+      return activeEventFilter !== 'all' || activeAcademicYear !== 'all' || activeSearchQuery.trim() !== '';
+    }
+
+    function resetEventFilters() {
+      activeEventFilter = 'all';
+      activeAcademicYear = 'all';
+      activeSearchQuery = '';
+      if (eventSearchInput) eventSearchInput.value = '';
+      if (academicYearSelect) academicYearSelect.value = 'all';
+      if (eventFilterChips) {
+        eventFilterChips.querySelectorAll('.filter-chip').forEach((chip) => {
+          chip.classList.toggle('active', chip.getAttribute('data-filter') === 'all');
+        });
       }
     }
 
-    clientNameInput.addEventListener('input', updateClientCodeHint);
+    function populateAcademicYearSelect() {
+      if (!academicYearSelect) return;
+      const yearSet = new Set();
+      const currentYear = getAcademicYearForDate(getLocalTodayIso());
+      if (currentYear) yearSet.add(currentYear);
+      events.forEach((ev) => {
+        const ay = getEventAcademicYear(ev);
+        if (ay) yearSet.add(ay);
+      });
+      const sortedYears = Array.from(yearSet).sort((a, b) => b.localeCompare(a));
+
+      if (activeAcademicYear !== 'all' && !yearSet.has(activeAcademicYear)) {
+        activeAcademicYear = 'all';
+      }
+
+      academicYearSelect.innerHTML = '<option value="all">All Academic Years</option>';
+      sortedYears.forEach((ay) => {
+        const opt = document.createElement('option');
+        opt.value = ay;
+        opt.textContent = ay === currentYear ? `${ay} (Current)` : ay;
+        academicYearSelect.appendChild(opt);
+      });
+      academicYearSelect.value = activeAcademicYear;
+    }
+
+    /** Return true if event matches active academic year, filter chip, and search query. */
+    function eventMatchesFilters(ev, todayStr) {
+      if (activeAcademicYear !== 'all' && getEventAcademicYear(ev) !== activeAcademicYear) {
+        return false;
+      }
+
+      const deptCode = ev.clientName ? findDepartmentCodeForClient(ev.clientName) : '';
+      const isBlueForm = Boolean(deptCode);
+      const end = getEventEndDateStr(ev);
+
+      if (activeEventFilter === 'upcoming' && !(end && end >= todayStr)) return false;
+      if (activeEventFilter === 'past' && !(end && end < todayStr)) return false;
+      if (activeEventFilter === 'outstanding' && !isOutstandingInvoice(ev, todayStr)) return false;
+      if (activeEventFilter === 'blue_form' && !isBlueForm) return false;
+      if (activeEventFilter === 'invoice' && isBlueForm) return false;
+
+      const q = activeSearchQuery.trim().toLowerCase();
+      if (q) {
+        const haystack = [
+          ev.name || '',
+          ev.clientName || '',
+          ev.contactName || '',
+          deptCode || '',
+          ev.invoiceNumber ? `inv-${ev.invoiceNumber} inv${ev.invoiceNumber} ${ev.invoiceNumber}` : ''
+        ].join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+
+      return true;
+    }
 
     function formatHumanDate(dateStr) {
       if (!dateStr) return '';
@@ -3551,16 +4129,47 @@
 
     function renderEvents() {
       sortEvents();
+      populateAcademicYearSelect();
+
+      const todayStr = getLocalTodayIso();
+      const filteredEvents = events.filter((ev) => eventMatchesFilters(ev, todayStr));
+      const filtersActive = hasActiveEventFilters();
+
+      if (clearEventFiltersBtn) {
+        clearEventFiltersBtn.style.display = filtersActive ? '' : 'none';
+      }
 
       const countBadge = document.getElementById('eventsCountBadge');
       if (countBadge) {
-        countBadge.textContent = events.length === 1 ? '1 event' : `${events.length} events`;
+        if (filtersActive) {
+          countBadge.textContent = `${filteredEvents.length} of ${events.length} event${events.length === 1 ? '' : 's'}`;
+        } else {
+          countBadge.textContent = events.length === 1 ? '1 event' : `${events.length} events`;
+        }
       }
 
       if (events.length === 0) {
+        emptyState.innerHTML = 'No events recorded yet. Click "+ Add Event" to create one.';
         emptyState.style.display = 'block';
         eventsList.innerHTML = '';
         eventsList.appendChild(emptyState);
+        renderUpcomingEvents();
+        renderOutstandingInvoices();
+        return;
+      }
+
+      if (filteredEvents.length === 0) {
+        emptyState.innerHTML = 'No events match your search or filters. <button type="button" id="emptyClearFiltersBtn" class="btn-secondary btn-xs" style="margin-left: 8px;">Clear Filters</button>';
+        emptyState.style.display = 'block';
+        eventsList.innerHTML = '';
+        eventsList.appendChild(emptyState);
+        const inlineClear = document.getElementById('emptyClearFiltersBtn');
+        if (inlineClear) {
+          inlineClear.addEventListener('click', () => {
+            resetEventFilters();
+            renderEvents();
+          });
+        }
         renderUpcomingEvents();
         renderOutstandingInvoices();
         return;
@@ -3570,7 +4179,7 @@
       eventsList.innerHTML = '';
       eventsList.appendChild(emptyState);
 
-      events.forEach((ev) => {
+      filteredEvents.forEach((ev) => {
         const card = document.createElement('div');
         card.className = 'event-card';
         card.id = 'event-card-' + ev.id;
@@ -3583,11 +4192,12 @@
         const clientDisplay = ev.clientName ? escapeHtml(ev.clientName) : 'No Client';
         const deptCode = ev.clientName ? findDepartmentCodeForClient(ev.clientName) : '';
         const isClientListed = Boolean(deptCode);
+        const savedExt = (!isClientListed && ev.clientName) ? findExternalClientByName(ev.clientName) : null;
 
         const clientBadgeClass = isClientListed ? 'event-client-badge' : 'event-client-badge unlisted';
         const clientBadgeText = isClientListed
           ? `Client: ${clientDisplay} (${escapeHtml(deptCode)})`
-          : `Client: ${clientDisplay} (Not listed)`;
+          : (savedExt ? `Client: ${clientDisplay} (Saved External)` : `Client: ${clientDisplay} (Not listed)`);
 
         const dateRangeDisplay = formatHumanDateRange(ev.startDate, ev.endDate);
         const activeGenType = activeGenerationMap.get(ev.id);
@@ -3706,12 +4316,45 @@
         .replace(/'/g, '&#39;');
     }
 
+    if (eventSearchInput) {
+      eventSearchInput.addEventListener('input', (e) => {
+        activeSearchQuery = e.target.value || '';
+        renderEvents();
+      });
+    }
+    if (academicYearSelect) {
+      academicYearSelect.addEventListener('change', (e) => {
+        activeAcademicYear = e.target.value || 'all';
+        renderEvents();
+      });
+    }
+    if (clearEventFiltersBtn) {
+      clearEventFiltersBtn.addEventListener('click', () => {
+        resetEventFilters();
+        renderEvents();
+      });
+    }
+    if (eventFilterChips) {
+      eventFilterChips.querySelectorAll('.filter-chip').forEach((chip) => {
+        chip.addEventListener('click', (e) => {
+          activeEventFilter = e.currentTarget.getAttribute('data-filter') || 'all';
+          eventFilterChips.querySelectorAll('.filter-chip').forEach((c) => {
+            c.classList.toggle('active', c === e.currentTarget);
+          });
+          renderEvents();
+        });
+      });
+    }
+
     function openModal() {
       editingEventId = null;
+      lastAutoFilledContact = '';
       modalTitleEl.textContent = 'Add Event';
       submitEventBtn.textContent = 'Save Event';
       eventForm.reset();
       document.getElementById('contactName').value = '';
+      if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'none';
+      if (saveExternalClientChk) saveExternalClientChk.checked = false;
       clientCodeHint.textContent = '';
       clientCodeHint.classList.remove('unlisted');
       modalBackdrop.classList.add('open');
@@ -3720,6 +4363,7 @@
 
     function openEditModal(ev) {
       editingEventId = ev.id;
+      lastAutoFilledContact = '';
       modalTitleEl.textContent = 'Edit Event';
       submitEventBtn.textContent = 'Save Changes';
 
@@ -3730,8 +4374,9 @@
       document.getElementById('startDate').value = ev.startDate || '';
       document.getElementById('endDate').value = ev.endDate || '';
       document.getElementById('invoiceSent').checked = !!ev.invoiceSent;
+      if (saveExternalClientChk) saveExternalClientChk.checked = false;
 
-      updateClientCodeHint();
+      updateClientCodeHint(false);
       modalBackdrop.classList.add('open');
       document.getElementById('eventName').focus();
     }
@@ -3739,8 +4384,11 @@
     function closeModal() {
       modalBackdrop.classList.remove('open');
       editingEventId = null;
+      lastAutoFilledContact = '';
       eventForm.reset();
       document.getElementById('contactName').value = '';
+      if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'none';
+      if (saveExternalClientChk) saveExternalClientChk.checked = false;
       clientCodeHint.textContent = '';
     }
 
@@ -3758,6 +4406,7 @@
       if (e.key === 'Escape') {
         if (modalBackdrop.classList.contains('open')) closeModal();
         if (settingsModalBackdrop && settingsModalBackdrop.classList.contains('open')) closeSettingsModal();
+        if (typeof directoryModalBackdrop !== 'undefined' && directoryModalBackdrop && directoryModalBackdrop.classList.contains('open')) closeDirectoryModal();
         if (clientIdModalBackdrop && clientIdModalBackdrop.classList.contains('open')) closeClientIdModal();
         if (validationModalBackdrop && validationModalBackdrop.classList.contains('open')) closeValidationModal();
       }
@@ -3765,13 +4414,15 @@
 
     eventForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      const submittedClientName = document.getElementById('clientName').value.trim();
+      const submittedContactName = document.getElementById('contactName').value.trim();
 
       if (editingEventId) {
         const target = events.find((item) => item.id === editingEventId);
         if (target) {
           target.name = document.getElementById('eventName').value.trim();
-          target.clientName = document.getElementById('clientName').value.trim();
-          target.contactName = document.getElementById('contactName').value.trim();
+          target.clientName = submittedClientName;
+          target.contactName = submittedContactName;
           target.charge = document.getElementById('eventCharge').value;
           target.startDate = document.getElementById('startDate').value;
           target.endDate = document.getElementById('endDate').value;
@@ -3781,8 +4432,8 @@
         const newEvent = {
           id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7),
           name: document.getElementById('eventName').value.trim(),
-          clientName: document.getElementById('clientName').value.trim(),
-          contactName: document.getElementById('contactName').value.trim(),
+          clientName: submittedClientName,
+          contactName: submittedContactName,
           charge: document.getElementById('eventCharge').value,
           startDate: document.getElementById('startDate').value,
           endDate: document.getElementById('endDate').value,
@@ -3790,6 +4441,11 @@
           createdAt: new Date().toISOString()
         };
         events.push(newEvent);
+      }
+
+      if (saveExternalClientChk && saveExternalClientChk.checked && submittedClientName && !findSocietyRecordForClient(submittedClientName)) {
+        upsertExternalClient({ name: submittedClientName, contactName: submittedContactName });
+        if (typeof updateDirectorySummary === 'function') updateDirectorySummary();
       }
 
       sortEvents();
@@ -4352,7 +5008,12 @@
       `;
 
       item.addEventListener('click', () => {
-        const targetCard = document.getElementById('event-card-' + ev.id);
+        let targetCard = document.getElementById('event-card-' + ev.id);
+        if (!targetCard && typeof hasActiveEventFilters === 'function' && hasActiveEventFilters()) {
+          resetEventFilters();
+          renderEvents();
+          targetCard = document.getElementById('event-card-' + ev.id);
+        }
         if (targetCard) {
           targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
           targetCard.classList.remove('flash-highlight');
@@ -4699,14 +5360,22 @@
 
     /** Export a full JSON backup excluding credentials/session tokens. */
     function exportBackupJson() {
+      let customSocieties = null;
+      try {
+        const rawSoc = localStorage.getItem(SOCIETIES_STORAGE_KEY);
+        if (rawSoc) customSocieties = JSON.parse(rawSoc);
+      } catch (err) {}
+
       const backup = {
         app: 'BTS Treas Tools',
-        backupVersion: 1,
+        backupVersion: 2,
         exportedAt: new Date().toISOString(),
         events,
         nextInvoiceNumber: parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10) || 1,
         notes: localStorage.getItem(NOTES_STORAGE_KEY) || '',
         quickLinks: getStoredQuickLinks(),
+        customSocieties,
+        externalClients: getStoredExternalClients(),
         settings: {
           parentDriveFolder: localStorage.getItem('treastrack_parent_drive_folder') || '',
           fieldMapping: customFieldMapping || {}
@@ -4719,7 +5388,7 @@
       showToast('Exported JSON backup.');
     }
 
-    /** Validate and restore events, notes, quick links, and settings from a JSON backup file. */
+    /** Validate and restore events, notes, quick links, clients, and settings from a JSON backup file. */
     async function importBackupJson(file) {
       if (!file) return;
       try {
@@ -4732,7 +5401,7 @@
 
         const count = parsed.events.length;
         const exportedLabel = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString('en-GB') : 'unknown date';
-        if (!confirm(`Restore backup from ${exportedLabel} (${count} events)? This will replace current browser events, notes, and quick links.`)) {
+        if (!confirm(`Restore backup from ${exportedLabel} (${count} events)? This will replace current browser events, notes, quick links, and client directories.`)) {
           return;
         }
 
@@ -4754,6 +5423,14 @@
           saveStoredQuickLinks(parsed.quickLinks);
           renderQuickLinksWidget();
         }
+        if (Array.isArray(parsed.customSocieties)) {
+          saveSocietiesList(parsed.customSocieties);
+        } else if (parsed.customSocieties === null) {
+          resetSocietiesToDefaults();
+        }
+        if (Array.isArray(parsed.externalClients)) {
+          saveStoredExternalClients(parsed.externalClients);
+        }
         if (parsed.settings && typeof parsed.settings === 'object') {
           if (typeof parsed.settings.parentDriveFolder === 'string') {
             if (parsed.settings.parentDriveFolder.trim()) {
@@ -4771,6 +5448,7 @@
           localStorage.setItem('treastrack_next_invoice_number', String(parseInt(parsed.nextInvoiceNumber, 10)));
         }
 
+        if (typeof updateDirectorySummary === 'function') updateDirectorySummary();
         renderEvents();
         showToast(`✓ Restored ${events.length} events from backup.`, 5000);
       } catch (err) {
@@ -4789,6 +5467,316 @@
         importBackupFileInput.value = '';
       });
     }
+
+    // ==========================================
+    // Clients & Societies Directory Manager
+    // ==========================================
+    const directoryModalBackdrop = document.getElementById('directoryModalBackdrop');
+    const closeDirectoryModalBtn = document.getElementById('closeDirectoryModalBtn');
+    const closeDirectoryModalBottomBtn = document.getElementById('closeDirectoryModalBottomBtn');
+    const directorySummaryText = document.getElementById('directorySummaryText');
+    const openSocietiesManagerBtn = document.getElementById('openSocietiesManagerBtn');
+    const openExternalClientsManagerBtn = document.getElementById('openExternalClientsManagerBtn');
+    const tabSocietiesBtn = document.getElementById('tabSocietiesBtn');
+    const tabExternalClientsBtn = document.getElementById('tabExternalClientsBtn');
+    const societiesManagerPanel = document.getElementById('societiesManagerPanel');
+    const externalClientsManagerPanel = document.getElementById('externalClientsManagerPanel');
+    const directoryModalCount = document.getElementById('directoryModalCount');
+
+    const societyEditForm = document.getElementById('societyEditForm');
+    const societyNameInput = document.getElementById('societyNameInput');
+    const societyCodeInput = document.getElementById('societyCodeInput');
+    const saveSocietyBtn = document.getElementById('saveSocietyBtn');
+    const cancelSocietyEditBtn = document.getElementById('cancelSocietyEditBtn');
+    const societySearchInput = document.getElementById('societySearchInput');
+    const resetSocietiesBtn = document.getElementById('resetSocietiesBtn');
+    const societiesManagerList = document.getElementById('societiesManagerList');
+
+    const externalClientEditForm = document.getElementById('externalClientEditForm');
+    const extClientNameInput = document.getElementById('extClientNameInput');
+    const extClientContactInput = document.getElementById('extClientContactInput');
+    const extClientEmailInput = document.getElementById('extClientEmailInput');
+    const extClientAddressInput = document.getElementById('extClientAddressInput');
+    const saveExtClientBtn = document.getElementById('saveExtClientBtn');
+    const cancelExtClientEditBtn = document.getElementById('cancelExtClientEditBtn');
+    const externalClientSearchInput = document.getElementById('externalClientSearchInput');
+    const externalClientsManagerList = document.getElementById('externalClientsManagerList');
+
+    let editingSocietyIndex = null;
+    let editingExtClientId = null;
+    let activeDirectoryTab = 'societies';
+
+    /** Update the Settings modal summary count of societies and saved external clients. */
+    function updateDirectorySummary() {
+      if (!directorySummaryText) return;
+      const socCount = getEffectiveSocieties().length;
+      const extCount = getStoredExternalClients().length;
+      directorySummaryText.textContent =
+        `${socCount} Blue Form ${socCount === 1 ? 'society' : 'societies'} · ${extCount} saved external ${extCount === 1 ? 'client' : 'clients'}`;
+    }
+
+    function resetSocietyForm() {
+      editingSocietyIndex = null;
+      if (societyEditForm) societyEditForm.reset();
+      if (saveSocietyBtn) saveSocietyBtn.textContent = 'Add Society';
+      if (cancelSocietyEditBtn) cancelSocietyEditBtn.style.display = 'none';
+    }
+
+    function resetExtClientForm() {
+      editingExtClientId = null;
+      if (externalClientEditForm) externalClientEditForm.reset();
+      if (saveExtClientBtn) saveExtClientBtn.textContent = 'Save External Client';
+      if (cancelExtClientEditBtn) cancelExtClientEditBtn.style.display = 'none';
+    }
+
+    function switchDirectoryTab(tab) {
+      activeDirectoryTab = tab === 'external' ? 'external' : 'societies';
+      const isExt = activeDirectoryTab === 'external';
+      if (tabSocietiesBtn) {
+        tabSocietiesBtn.classList.toggle('active', !isExt);
+        tabSocietiesBtn.setAttribute('aria-selected', String(!isExt));
+      }
+      if (tabExternalClientsBtn) {
+        tabExternalClientsBtn.classList.toggle('active', isExt);
+        tabExternalClientsBtn.setAttribute('aria-selected', String(isExt));
+      }
+      if (societiesManagerPanel) societiesManagerPanel.style.display = isExt ? 'none' : 'flex';
+      if (externalClientsManagerPanel) externalClientsManagerPanel.style.display = isExt ? 'flex' : 'none';
+      if (isExt) {
+        renderExternalClientsManagerList();
+      } else {
+        renderSocietiesManagerList();
+      }
+    }
+
+    function openDirectoryModal(tab = 'societies') {
+      resetSocietyForm();
+      resetExtClientForm();
+      switchDirectoryTab(tab);
+      if (directoryModalBackdrop) directoryModalBackdrop.classList.add('open');
+    }
+
+    function closeDirectoryModal() {
+      if (directoryModalBackdrop) directoryModalBackdrop.classList.remove('open');
+      resetSocietyForm();
+      resetExtClientForm();
+    }
+
+    function renderSocietiesManagerList() {
+      if (!societiesManagerList) return;
+      const all = getEffectiveSocieties();
+      const q = (societySearchInput ? societySearchInput.value : '').trim().toLowerCase();
+      const filtered = all
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => !q || item.name.toLowerCase().includes(q) || item.code.toLowerCase().includes(q));
+
+      if (directoryModalCount && activeDirectoryTab === 'societies') {
+        directoryModalCount.textContent = `${filtered.length} of ${all.length} societies shown`;
+      }
+
+      if (filtered.length === 0) {
+        societiesManagerList.innerHTML = '<div class="empty-upcoming">No matching societies.</div>';
+        return;
+      }
+
+      societiesManagerList.innerHTML = filtered.map(({ item, idx }) => `
+        <div class="directory-row">
+          <div class="directory-row-info">
+            <div class="directory-row-title">${escapeHtml(item.name)}</div>
+            <div class="directory-row-meta">Department Code: <strong>${escapeHtml(item.code)}</strong></div>
+          </div>
+          <div class="directory-row-actions">
+            <button type="button" class="btn-ghost-sm btn-edit-soc" data-idx="${idx}">Edit</button>
+            <button type="button" class="btn-ghost-sm btn-delete btn-del-soc" data-idx="${idx}">Remove</button>
+          </div>
+        </div>
+      `).join('');
+
+      societiesManagerList.querySelectorAll('.btn-edit-soc').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          const list = getEffectiveSocieties();
+          const target = list[idx];
+          if (!target) return;
+          editingSocietyIndex = idx;
+          societyNameInput.value = target.name;
+          societyCodeInput.value = target.code;
+          saveSocietyBtn.textContent = 'Save Changes';
+          cancelSocietyEditBtn.style.display = '';
+          societyNameInput.focus();
+        });
+      });
+
+      societiesManagerList.querySelectorAll('.btn-del-soc').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          const list = getEffectiveSocieties();
+          const target = list[idx];
+          if (!target) return;
+          if (!confirm(`Remove "${target.name}" (${target.code}) from the Blue Form societies directory?`)) return;
+          list.splice(idx, 1);
+          saveSocietiesList(list);
+          if (editingSocietyIndex === idx) resetSocietyForm();
+          updateDirectorySummary();
+          renderSocietiesManagerList();
+          renderEvents();
+          updateClientCodeHint(false);
+          showToast(`Removed society "${target.name}".`);
+        });
+      });
+    }
+
+    function renderExternalClientsManagerList() {
+      if (!externalClientsManagerList) return;
+      const all = getStoredExternalClients();
+      const q = (externalClientSearchInput ? externalClientSearchInput.value : '').trim().toLowerCase();
+      const filtered = all.filter((c) => {
+        if (!q) return true;
+        return [c.name, c.contactName, c.email, c.address].join(' ').toLowerCase().includes(q);
+      });
+
+      if (directoryModalCount && activeDirectoryTab === 'external') {
+        directoryModalCount.textContent = `${filtered.length} of ${all.length} saved external clients`;
+      }
+
+      if (filtered.length === 0) {
+        externalClientsManagerList.innerHTML = '<div class="empty-upcoming">No saved external clients yet. Add one above or tick save when creating an event.</div>';
+        return;
+      }
+
+      externalClientsManagerList.innerHTML = filtered.map((c) => {
+        const meta = [
+          c.contactName ? `Contact: ${c.contactName}` : '',
+          c.email || '',
+          c.address || ''
+        ].filter(Boolean).join(' • ');
+        return `
+          <div class="directory-row">
+            <div class="directory-row-info">
+              <div class="directory-row-title">${escapeHtml(c.name)}</div>
+              ${meta ? `<div class="directory-row-meta">${escapeHtml(meta)}</div>` : '<div class="directory-row-meta">No contact details saved</div>'}
+            </div>
+            <div class="directory-row-actions">
+              <button type="button" class="btn-ghost-sm btn-edit-ext" data-id="${escapeHtml(c.id)}">Edit</button>
+              <button type="button" class="btn-ghost-sm btn-delete btn-del-ext" data-id="${escapeHtml(c.id)}">Remove</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      externalClientsManagerList.querySelectorAll('.btn-edit-ext').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const target = getStoredExternalClients().find((c) => c.id === id);
+          if (!target) return;
+          editingExtClientId = target.id;
+          extClientNameInput.value = target.name || '';
+          extClientContactInput.value = target.contactName || '';
+          extClientEmailInput.value = target.email || '';
+          extClientAddressInput.value = target.address || '';
+          saveExtClientBtn.textContent = 'Save Changes';
+          cancelExtClientEditBtn.style.display = '';
+          extClientNameInput.focus();
+        });
+      });
+
+      externalClientsManagerList.querySelectorAll('.btn-del-ext').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const list = getStoredExternalClients();
+          const target = list.find((c) => c.id === id);
+          if (!target) return;
+          if (!confirm(`Remove external client "${target.name}" from saved directory?`)) return;
+          saveStoredExternalClients(list.filter((c) => c.id !== id));
+          if (editingExtClientId === id) resetExtClientForm();
+          updateDirectorySummary();
+          renderExternalClientsManagerList();
+          renderEvents();
+          showToast(`Removed external client "${target.name}".`);
+        });
+      });
+    }
+
+    if (openSocietiesManagerBtn) openSocietiesManagerBtn.addEventListener('click', () => openDirectoryModal('societies'));
+    if (openExternalClientsManagerBtn) openExternalClientsManagerBtn.addEventListener('click', () => openDirectoryModal('external'));
+    if (closeDirectoryModalBtn) closeDirectoryModalBtn.addEventListener('click', closeDirectoryModal);
+    if (closeDirectoryModalBottomBtn) closeDirectoryModalBottomBtn.addEventListener('click', closeDirectoryModal);
+    if (directoryModalBackdrop) {
+      directoryModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === directoryModalBackdrop) closeDirectoryModal();
+      });
+    }
+    if (tabSocietiesBtn) tabSocietiesBtn.addEventListener('click', () => switchDirectoryTab('societies'));
+    if (tabExternalClientsBtn) tabExternalClientsBtn.addEventListener('click', () => switchDirectoryTab('external'));
+    if (cancelSocietyEditBtn) cancelSocietyEditBtn.addEventListener('click', resetSocietyForm);
+    if (cancelExtClientEditBtn) cancelExtClientEditBtn.addEventListener('click', resetExtClientForm);
+    if (societySearchInput) societySearchInput.addEventListener('input', renderSocietiesManagerList);
+    if (externalClientSearchInput) externalClientSearchInput.addEventListener('input', renderExternalClientsManagerList);
+
+    if (resetSocietiesBtn) {
+      resetSocietiesBtn.addEventListener('click', () => {
+        if (!confirm('Reset the Blue Form societies list back to defaults? Custom additions and edits will be removed.')) return;
+        resetSocietiesToDefaults();
+        resetSocietyForm();
+        updateDirectorySummary();
+        renderSocietiesManagerList();
+        renderEvents();
+        updateClientCodeHint(false);
+        showToast('Restored default societies directory.');
+      });
+    }
+
+    if (societyEditForm) {
+      societyEditForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = societyNameInput.value.trim();
+        const code = societyCodeInput.value.trim().toUpperCase();
+        if (!name || !code) return;
+
+        const list = getEffectiveSocieties();
+        if (editingSocietyIndex !== null && list[editingSocietyIndex]) {
+          list[editingSocietyIndex] = { name, code };
+          showToast(`Updated society "${name}" (${code}).`);
+        } else {
+          list.unshift({ name, code });
+          showToast(`Added society "${name}" (${code}).`);
+        }
+        saveSocietiesList(list);
+        resetSocietyForm();
+        updateDirectorySummary();
+        renderSocietiesManagerList();
+        renderEvents();
+        updateClientCodeHint(false);
+      });
+    }
+
+    if (externalClientEditForm) {
+      externalClientEditForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = extClientNameInput.value.trim();
+        if (!name) return;
+        const contactName = extClientContactInput.value.trim();
+        const email = extClientEmailInput.value.trim();
+        const address = extClientAddressInput.value.trim();
+        const isEdit = Boolean(editingExtClientId);
+
+        upsertExternalClient({
+          id: editingExtClientId,
+          name,
+          contactName,
+          email,
+          address
+        });
+        resetExtClientForm();
+        updateDirectorySummary();
+        renderExternalClientsManagerList();
+        renderEvents();
+        updateClientCodeHint(false);
+        showToast(isEdit ? `Updated external client "${name}".` : `Saved external client "${name}".`);
+      });
+    }
+
+    updateDirectorySummary();
   </script>
 </body>
 </html>

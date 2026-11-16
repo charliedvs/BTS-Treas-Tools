@@ -8,7 +8,7 @@
  *    In the left sidebar, click "+" next to "Services", select "Gmail API", and click "Add".
  * 4. At the top toolbar, select "doGet" in the function dropdown and click "Run" once
  *    to approve the Google permissions prompt ("Review permissions" -> "Advanced" -> "Allow").
- *    (This approves Drive, Gmail, Properties, and External Token Verification scopes.)
+ *    (This approves Drive, Gmail, and External Token Verification scopes.)
  * 5. Click "Deploy" (top right) -> "Manage deployments" -> Edit -> Version: "New version" -> "Deploy".
  *    - Type: "Web app"
  *    - Execute as: "Me"
@@ -20,14 +20,12 @@ var AUTHORIZED_EMAIL = 'treas@bts-crew.com';
 var DEFAULT_ALLOWED_CLIENT_IDS = [
   '523917169511-qp7hvnb54uhho8huevg0r6e76bil27ub.apps.googleusercontent.com'
 ];
-var INVOICE_COUNTER_PROP = 'NEXT_INVOICE_NUMBER';
 
 function doGet(e) {
   try {
-    // Touch Drive, Gmail, Properties, and UrlFetch scopes so running doGet once approves all permissions
+    // Touch Drive, Gmail, and UrlFetch scopes so running doGet once approves all permissions
     DriveApp.getRootFolder().getName();
     GmailApp.getInboxThreads(0, 1);
-    PropertiesService.getScriptProperties().getProperty(INVOICE_COUNTER_PROP);
     UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo', { muteHttpExceptions: true });
 
     var hasAdvancedGmail = (typeof Gmail !== 'undefined' && Boolean(Gmail.Users));
@@ -37,7 +35,6 @@ function doGet(e) {
       '• Google Drive scope: Connected',
       '• Gmail scope: Connected',
       '• Token verification scope (UrlFetchApp): Connected',
-      '• Centralized invoice counter scope (PropertiesService): Connected',
       '• Advanced Gmail API service enabled: ' + (hasAdvancedGmail ? 'Yes' : 'No (optional — enable "Gmail API" under Services +)')
     ].join('\n');
 
@@ -71,17 +68,13 @@ function doPost(e) {
     }
 
     var action = String(payload.action || 'saveDocument');
-    if (action === 'status' || action === 'getInvoiceCounter') {
-      return jsonResponse(handleGetInvoiceCounter(payload, auth));
-    }
-    if (action === 'allocateInvoiceNumber') {
-      return jsonResponse(handleAllocateInvoiceNumber(payload));
-    }
-    if (action === 'setInvoiceNumber') {
-      return jsonResponse(handleSetInvoiceNumber(payload));
-    }
-    if (action === 'resetInvoiceNumbers') {
-      return jsonResponse(handleResetInvoiceNumbers());
+    if (action === 'status') {
+      return jsonResponse({
+        success: true,
+        scriptVersion: APP_SCRIPT_VERSION,
+        email: auth.email,
+        hasAdvancedGmail: (typeof Gmail !== 'undefined' && Boolean(Gmail.Users))
+      });
     }
 
     return jsonResponse(handleSaveDocument(payload));
@@ -177,99 +170,6 @@ function verifyGoogleAuth(payload) {
   }
 }
 
-function padInvoiceNumber(num) {
-  var s = String(num);
-  while (s.length < 4) s = '0' + s;
-  return s;
-}
-
-function getOrSeedNextInvoiceNumber(props, minNextNumber) {
-  var raw = props.getProperty(INVOICE_COUNTER_PROP);
-  var current = parseInt(raw, 10);
-  if (isNaN(current) || current < 1) {
-    var seed = parseInt(minNextNumber, 10);
-    current = (!isNaN(seed) && seed >= 1) ? seed : 1;
-    props.setProperty(INVOICE_COUNTER_PROP, String(current));
-  }
-  return current;
-}
-
-function handleGetInvoiceCounter(payload, auth) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    var props = PropertiesService.getScriptProperties();
-    var nextNum = getOrSeedNextInvoiceNumber(props, payload.minNextNumber);
-    return {
-      success: true,
-      scriptVersion: APP_SCRIPT_VERSION,
-      email: auth.email,
-      hasAdvancedGmail: (typeof Gmail !== 'undefined' && Boolean(Gmail.Users)),
-      nextInvoiceNumber: nextNum
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function handleAllocateInvoiceNumber(payload) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    var props = PropertiesService.getScriptProperties();
-    var current = getOrSeedNextInvoiceNumber(props, payload.minNextNumber);
-    var next = current + 1;
-    props.setProperty(INVOICE_COUNTER_PROP, String(next));
-    return {
-      success: true,
-      scriptVersion: APP_SCRIPT_VERSION,
-      invoiceNumber: padInvoiceNumber(current),
-      nextInvoiceNumber: next
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function handleSetInvoiceNumber(payload) {
-  var nextNum = parseInt(payload.nextInvoiceNumber, 10);
-  if (isNaN(nextNum) || nextNum < 1) {
-    return {
-      success: false,
-      scriptVersion: APP_SCRIPT_VERSION,
-      error: 'Next invoice number must be 1 or greater.'
-    };
-  }
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    PropertiesService.getScriptProperties().setProperty(INVOICE_COUNTER_PROP, String(nextNum));
-    return {
-      success: true,
-      scriptVersion: APP_SCRIPT_VERSION,
-      nextInvoiceNumber: nextNum
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function handleResetInvoiceNumbers() {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    PropertiesService.getScriptProperties().setProperty(INVOICE_COUNTER_PROP, '1');
-    return {
-      success: true,
-      scriptVersion: APP_SCRIPT_VERSION,
-      nextInvoiceNumber: 1
-    };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
 function resolveEventFolder(parentFolder, eventName, requestedFolderId) {
   if (requestedFolderId) {
     try {
@@ -293,7 +193,6 @@ function deleteMatchingDrafts(subject) {
   var replaced = false;
   try {
     if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Drafts) {
-      // Narrow candidate drafts with Gmail query, then confirm exact subject header before deleting
       var cleanQuery = subject.replace(/["\\]/g, ' ').trim();
       var listRes = Gmail.Users.Drafts.list('me', { q: 'subject:"' + cleanQuery + '"' });
       var drafts = (listRes && listRes.drafts) ? listRes.drafts : [];
@@ -452,7 +351,6 @@ function getGmailSignatureHtml() {
 }
 
 function createGmailDraft(subject, plainBody, htmlBody, pdfBlob) {
-  // 1. If the Advanced Gmail API service is enabled, create a raw MIME draft so "To" can be completely blank
   if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Drafts) {
     try {
       var boundary = 'treastrack_boundary_' + Utilities.getUuid();
@@ -488,7 +386,6 @@ function createGmailDraft(subject, plainBody, htmlBody, pdfBlob) {
     }
   }
 
-  // 2. Fallback to standard GmailApp.createDraft
   try {
     GmailApp.createDraft('', subject, plainBody, {
       htmlBody: htmlBody,
