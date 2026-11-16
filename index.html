@@ -2547,7 +2547,7 @@
         // Save modified PDF and trigger browser download
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const safeEventName = eventName.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'Event';
+        const safeEventName = eventName.replace(/[\x00-\x1f\x7f]+/g, '').replace(/[\\/*?"<>|]+/g, '_').trim() || 'Event';
         const fileName = `BF_${safeEventName}.pdf`;
 
         const url = URL.createObjectURL(blob);

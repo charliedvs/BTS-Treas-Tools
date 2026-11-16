@@ -57,6 +57,9 @@ function doPost(e) {
     var documentType = String(payload.documentType || (fileName.indexOf('INV') === 0 ? 'invoice' : 'blue_form')).toLowerCase();
     var isInvoice = (documentType === 'invoice');
 
+    // Strip control characters only so Drive folders and email drafts keep punctuation such as colons
+    eventName = eventName.replace(/[\x00-\x1f\x7f]/g, '').substring(0, 100).trim() || 'Untitled Event';
+
     if (!fileName) {
       fileName = isInvoice ? ('INV_' + eventName + '.pdf') : ('BF_' + eventName + '.pdf');
     }
@@ -68,9 +71,8 @@ function doPost(e) {
       return jsonResponse({ success: false, error: 'PDF data exceeds maximum size limit (20MB).' });
     }
 
-    // Sanitize eventName and fileName to prevent directory traversal or control characters
-    eventName = eventName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || 'Untitled Event';
-    fileName = fileName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || (isInvoice ? 'INV_Event.pdf' : 'BF_Event.pdf');
+    // Strip control characters and replace path-unsafe characters (preserving colons) in Drive/Gmail filenames
+    fileName = fileName.replace(/[\x00-\x1f\x7f]/g, '').replace(/[\\/*?"<>|]/g, '_').substring(0, 100).trim() || (isInvoice ? 'INV_Event.pdf' : 'BF_Event.pdf');
 
     // 1. Decode the PDF bytes
     var pdfBytes = Utilities.base64Decode(pdfBase64);
