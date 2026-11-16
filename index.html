@@ -1781,6 +1781,7 @@
       ["Bath Ceramics Society", "CER"],
       ["Bath Crochet and Knit Society", "CRO"],
       ["Bath Indian Dance Society", "BID"],
+      ["Bath University Latin and Ballroom (BULB)", "LAT"],
       ["Bath University Pole and Aerial (BUPA)", "POL"],
       ["Bath University Student Musicals (BUSMS)", "SMS"],
       ["Bath University Student Theatre (BUST)", "STS"],
@@ -2011,9 +2012,14 @@
         }
       }
 
-      // 2. Exact match on parenthetical alias or dash prefix (e.g. "BUSMS", "BUST", "ChaOS", "M.E.M.E.S", "ABACUS")
+      // 2. Exact match on parenthetical alias or dash prefix (e.g. "BUSMS", "BUST", "ChaOS", "M.E.M.E.S", "ABACUS", "BULB")
+      const queryBase = upperQuery.replace(/\(.*?\)/g, ' ').replace(/\s+/g, ' ').trim();
       for (const item of INDEXED_SOCIETIES) {
-        if (item.aliases.includes(upperQuery) || item.aliases.includes(compactQuery)) {
+        if (
+          item.aliases.includes(upperQuery) ||
+          item.aliases.includes(compactQuery) ||
+          (queryBase && (item.aliases.includes(queryBase) || item.baseName === queryBase))
+        ) {
           return item;
         }
       }
@@ -2981,12 +2987,15 @@
           });
         }
 
-        const folderStatus = (result && result.folderExisted) ? ' (existing folder)' : '';
+        if (result && result.success === false) {
+          showToast('Google Drive/Gmail error: ' + (result.error || 'Unknown error'), 6000);
+          return;
+        }
+
         if (isInvoice) {
-          showToast(`✓ Saved "${fileName}" to Google Drive folder "${eventName}"${folderStatus}!`, 5500);
+          showToast('Invoice created, saved to drive. Please upload to Iplicit.', 5000);
         } else {
-          const draftStatus = (result && result.draftReplaced) ? ' (updated draft)' : '';
-          showToast(`✓ Saved "${fileName}" to Google Drive folder "${eventName}"${folderStatus} & Gmail Drafts${draftStatus}!`, 5500);
+          showToast('Blue form created, saved to drive, email drafted.', 5000);
         }
       } catch (err) {
         console.error('Failed to call Google Apps Script Web App:', err);
@@ -3481,19 +3490,7 @@
             return;
           }
 
-          // 2. Automatically open Gmail Drafts & Google Drive
-          try {
-            window.open('https://mail.google.com/mail/u/0/#drafts', '_blank', 'noopener,noreferrer');
-            const parentFolderId = extractFolderId(getEffectiveParentDriveFolder());
-            const driveUrl = parentFolderId
-              ? `https://drive.google.com/drive/folders/${parentFolderId}`
-              : 'https://drive.google.com/drive/u/0/my-drive';
-            window.open(driveUrl, '_blank', 'noopener,noreferrer');
-          } catch (popupErr) {
-            console.warn('Could not open external windows:', popupErr);
-          }
-
-          // 3. Generate Blue Form PDF
+          // 2. Generate Blue Form PDF
           await generateBlueFormPdf(targetEvent);
         });
       });
@@ -3513,14 +3510,7 @@
             return;
           }
 
-          // 2. Automatically open iplicit in a new window
-          try {
-            window.open('https://app.iplicit.com/bathsu/#view', '_blank', 'noopener,noreferrer');
-          } catch (popupErr) {
-            console.warn('Could not open iplicit:', popupErr);
-          }
-
-          // 3. Generate Invoice PDF
+          // 2. Generate Invoice PDF
           await generateInvoicePdf(targetEvent);
         });
       });
