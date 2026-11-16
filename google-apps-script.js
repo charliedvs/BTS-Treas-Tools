@@ -1,35 +1,44 @@
 /**
- * BTS Treas Tools — Google Drive & Gmail Automation Script
+ * BTS Treas Tools — Google Drive & Gmail Automation Script (v2)
  *
  * SETUP INSTRUCTIONS:
  * 1. Go to https://script.google.com and open your project.
  * 2. Replace all code in Code.gs with this entire file and press Ctrl+S (Save).
- * 3. (Optional — for Automatic Gmail Signature & Blank "To" field):
+ * 3. (Recommended — for Automatic Gmail Signature, Blank "To" field & Fast Draft Search):
  *    In the left sidebar, click "+" next to "Services", select "Gmail API", and click "Add".
  * 4. At the top toolbar, select "doGet" in the function dropdown and click "Run" once
  *    to approve the Google permissions prompt ("Review permissions" -> "Advanced" -> "Allow").
- * 5. Click "Deploy" (top right) -> "New deployment" (or "Manage deployments" -> Edit -> "New version").
+ *    (This approves Drive, Gmail, Properties, and External Token Verification scopes.)
+ * 5. Click "Deploy" (top right) -> "Manage deployments" -> Edit -> Version: "New version" -> "Deploy".
  *    - Type: "Web app"
  *    - Execute as: "Me"
- *    - Who has access: "Anyone"
- * 6. Copy the Web app URL (ending in /exec) and paste it into "Google Setup" in BTS Treas Tools.
+ *    - Who has access: "Anyone" (Requests still require a verified treas@bts-crew.com Google OAuth token)
  */
+
+var APP_SCRIPT_VERSION = 2;
+var AUTHORIZED_EMAIL = 'treas@bts-crew.com';
+var DEFAULT_ALLOWED_CLIENT_IDS = [
+  '523917169511-qp7hvnb54uhho8huevg0r6e76bil27ub.apps.googleusercontent.com'
+];
+var INVOICE_COUNTER_PROP = 'NEXT_INVOICE_NUMBER';
 
 function doGet(e) {
   try {
-    // Touch DriveApp and GmailApp so visiting the URL in a browser verifies permissions
-    var rootName = DriveApp.getRootFolder().getName();
-    var draftsCount = GmailApp.getDrafts().length;
-    var hasAdvancedGmail = (typeof Gmail !== 'undefined' && Boolean(Gmail.Users));
-    var sig = getGmailSignatureHtml();
+    // Touch Drive, Gmail, Properties, and UrlFetch scopes so running doGet once approves all permissions
+    DriveApp.getRootFolder().getName();
+    GmailApp.getInboxThreads(0, 1);
+    PropertiesService.getScriptProperties().getProperty(INVOICE_COUNTER_PROP);
+    UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo', { muteHttpExceptions: true });
 
+    var hasAdvancedGmail = (typeof Gmail !== 'undefined' && Boolean(Gmail.Users));
     var statusText = [
-      '✓ BTS Treas Tools Google Apps Script is active and authorized!',
+      '✓ BTS Treas Tools Google Apps Script (v' + APP_SCRIPT_VERSION + ') is active and authorized!',
       '',
-      '• Google Drive connected (Root folder: ' + rootName + ')',
-      '• Gmail connected (Current drafts: ' + draftsCount + ')',
-      '• Advanced Gmail API service enabled: ' + (hasAdvancedGmail ? 'Yes' : 'No (optional — enable "Gmail API" under Services + for automatic signature & blank To field)'),
-      '• Default Gmail signature detected: ' + (sig ? 'Yes' : 'No')
+      '• Google Drive scope: Connected',
+      '• Gmail scope: Connected',
+      '• Token verification scope (UrlFetchApp): Connected',
+      '• Centralized invoice counter scope (PropertiesService): Connected',
+      '• Advanced Gmail API service enabled: ' + (hasAdvancedGmail ? 'Yes' : 'No (optional — enable "Gmail API" under Services +)')
     ].join('\n');
 
     return ContentService
@@ -47,113 +56,372 @@ function doPost(e) {
     var rawContents = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
     // Reject oversized payloads (>25MB) to prevent quota exhaustion or abuse
     if (rawContents.length > 25 * 1024 * 1024) {
-      return jsonResponse({ success: false, error: 'Payload exceeds maximum limit (25MB).' });
+      return jsonResponse({ success: false, scriptVersion: APP_SCRIPT_VERSION, error: 'Payload exceeds maximum limit (25MB).' });
     }
+
     var payload = JSON.parse(rawContents);
-    var eventName = (payload.eventName || 'Untitled Event').trim();
-    var fileName = (payload.fileName || '').trim();
-    var pdfBase64 = payload.pdfBase64 || '';
-    var parentFolderId = extractFolderId(payload.parentFolderId || '');
-    var documentType = String(payload.documentType || (fileName.indexOf('INV') === 0 ? 'invoice' : 'blue_form')).toLowerCase();
-    var isInvoice = (documentType === 'invoice');
-
-    // Strip control characters only so Drive folders and email drafts keep punctuation such as colons
-    eventName = eventName.replace(/[\x00-\x1f\x7f]/g, '').substring(0, 100).trim() || 'Untitled Event';
-
-    if (!fileName) {
-      fileName = isInvoice ? ('INV_' + eventName + '.pdf') : ('BF_' + eventName + '.pdf');
+    var auth = verifyGoogleAuth(payload);
+    if (!auth.authorized) {
+      return jsonResponse({
+        success: false,
+        code: 'UNAUTHORIZED',
+        scriptVersion: APP_SCRIPT_VERSION,
+        error: auth.error
+      });
     }
 
-    if (!pdfBase64) {
-      return jsonResponse({ success: false, error: 'Missing PDF data.' });
+    var action = String(payload.action || 'saveDocument');
+    if (action === 'status' || action === 'getInvoiceCounter') {
+      return jsonResponse(handleGetInvoiceCounter(payload, auth));
     }
-    if (pdfBase64.length > 20 * 1024 * 1024) {
-      return jsonResponse({ success: false, error: 'PDF data exceeds maximum size limit (20MB).' });
+    if (action === 'allocateInvoiceNumber') {
+      return jsonResponse(handleAllocateInvoiceNumber(payload));
     }
-
-    // Strip control characters and replace path-unsafe characters (preserving colons) in Drive/Gmail filenames
-    fileName = fileName.replace(/[\x00-\x1f\x7f]/g, '').replace(/[\\/*?"<>|]/g, '_').substring(0, 100).trim() || (isInvoice ? 'INV_Event.pdf' : 'BF_Event.pdf');
-
-    // 1. Decode the PDF bytes
-    var pdfBytes = Utilities.base64Decode(pdfBase64);
-    var pdfBlob = Utilities.newBlob(pdfBytes, 'application/pdf', fileName);
-
-    // 2. Find or create the "{event name}" folder inside the Parent Drive Folder (or root Drive)
-    var parentFolder = parentFolderId
-      ? DriveApp.getFolderById(parentFolderId)
-      : DriveApp.getRootFolder();
-
-    var existingFolders = parentFolder.getFoldersByName(eventName);
-    var folderExisted = existingFolders.hasNext();
-    var eventFolder = folderExisted ? existingFolders.next() : parentFolder.createFolder(eventName);
-
-    // Check if a file with the same name already exists in this folder (e.g. updating an invoice or blue form)
-    var existingFiles = eventFolder.getFilesByName(fileName);
-    var fileExisted = existingFiles.hasNext();
-    while (existingFiles.hasNext()) {
-      var oldFile = existingFiles.next();
-      try {
-        oldFile.setTrashed(true); // Clean up previous copy with the exact same name
-      } catch (trashErr) {
-        Logger.log('Could not trash old file: ' + trashErr);
-      }
+    if (action === 'setInvoiceNumber') {
+      return jsonResponse(handleSetInvoiceNumber(payload));
+    }
+    if (action === 'resetInvoiceNumbers') {
+      return jsonResponse(handleResetInvoiceNumbers());
     }
 
-    // Save the PDF file into the event folder
-    var savedFile = eventFolder.createFile(pdfBlob);
-
-    // 3. Build the Gmail Draft only for Blue Forms (skipped for Invoices)
-    var skipDraft = (payload.skipDraft === true || isInvoice);
-    var draftCreated = false;
-    var draftExisted = false;
-    if (!skipDraft) {
-      var subject = 'Blue Form - ' + eventName;
-      var plainBody = 'Hi,\n\nPlease find attached the Blue Form for ' + eventName + '.';
-      var htmlBody =
-        '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222; line-height: 1.5;">' +
-        '<p style="margin: 0 0 12px 0;">Hi,</p>' +
-        '<p style="margin: 0 0 12px 0;">Please find attached the Blue Form for ' + escapeHtml(eventName) + '.</p>' +
-        '</div>';
-
-      var signatureHtml = getGmailSignatureHtml();
-      if (signatureHtml) {
-        htmlBody += signatureHtml;
-      }
-
-      // Check if a draft with the exact same subject already exists in Gmail to avoid duplicates
-      try {
-        var existingDrafts = GmailApp.getDrafts();
-        for (var d = 0; d < existingDrafts.length; d++) {
-          if (existingDrafts[d].getMessage().getSubject() === subject) {
-            draftExisted = true;
-            existingDrafts[d].deleteDraft(); // Remove outdated draft before recreating with latest PDF
-            break;
-          }
-        }
-      } catch (draftCheckErr) {
-        Logger.log('Could not check existing drafts: ' + draftCheckErr);
-      }
-
-      createGmailDraft(subject, plainBody, htmlBody, pdfBlob);
-      draftCreated = true;
-    }
-
-    return jsonResponse({
-      success: true,
-      folderName: eventFolder.getName(),
-      folderUrl: eventFolder.getUrl(),
-      folderExisted: folderExisted,
-      fileUrl: savedFile.getUrl(),
-      fileReplaced: fileExisted,
-      draftCreated: draftCreated,
-      draftReplaced: draftExisted
-    });
+    return jsonResponse(handleSaveDocument(payload));
   } catch (err) {
     return jsonResponse({
       success: false,
+      scriptVersion: APP_SCRIPT_VERSION,
       error: err && err.message ? err.message : String(err)
     });
   }
+}
+
+function getAllowedClientIds() {
+  var ids = DEFAULT_ALLOWED_CLIENT_IDS.slice();
+  try {
+    var extra = PropertiesService.getScriptProperties().getProperty('ALLOWED_CLIENT_IDS');
+    if (extra) {
+      var parts = extra.split(',');
+      for (var i = 0; i < parts.length; i++) {
+        var trimmed = parts[i].trim();
+        if (trimmed && ids.indexOf(trimmed) === -1) {
+          ids.push(trimmed);
+        }
+      }
+    }
+  } catch (err) {
+    Logger.log('Could not read ALLOWED_CLIENT_IDS property: ' + err);
+  }
+  return ids;
+}
+
+function verifyGoogleAuth(payload) {
+  var token = String(payload && payload.authToken ? payload.authToken : '').trim();
+  var tokenType = String(payload && payload.authTokenType ? payload.authTokenType : 'access_token').toLowerCase();
+
+  if (!token) {
+    return {
+      authorized: false,
+      error: 'Authentication required. Please sign in with Google (' + AUTHORIZED_EMAIL + ').'
+    };
+  }
+
+  var paramName = (tokenType === 'id_token') ? 'id_token' : 'access_token';
+  var url = 'https://oauth2.googleapis.com/tokeninfo?' + paramName + '=' + encodeURIComponent(token);
+
+  try {
+    var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) {
+      return {
+        authorized: false,
+        error: 'Google session expired or invalid. Please sign in again with ' + AUTHORIZED_EMAIL + '.'
+      };
+    }
+
+    var info = JSON.parse(res.getContentText() || '{}');
+    var email = String(info.email || '').trim().toLowerCase();
+    var emailVerified = (info.email_verified === true || String(info.email_verified).toLowerCase() === 'true');
+    if (!emailVerified || email !== AUTHORIZED_EMAIL.toLowerCase()) {
+      return {
+        authorized: false,
+        error: 'Access denied for account "' + (info.email || 'unknown') + '". Only ' + AUTHORIZED_EMAIL + ' is authorized.'
+      };
+    }
+
+    var allowedIds = getAllowedClientIds();
+    var tokenAud = String(info.aud || '').trim();
+    var tokenAzp = String(info.azp || '').trim();
+    if (allowedIds.indexOf(tokenAud) === -1 && allowedIds.indexOf(tokenAzp) === -1) {
+      return {
+        authorized: false,
+        error: 'Token client ID is not authorized for BTS Treas Tools.'
+      };
+    }
+
+    if (info.expires_in !== undefined) {
+      var expiresIn = parseInt(info.expires_in, 10);
+      if (isNaN(expiresIn) || expiresIn <= 0) {
+        return { authorized: false, error: 'Google token has expired. Please try again.' };
+      }
+    } else if (info.exp !== undefined) {
+      var expMs = Number(info.exp) * 1000;
+      if (isNaN(expMs) || expMs <= Date.now()) {
+        return { authorized: false, error: 'Google ID token has expired. Please try again.' };
+      }
+    }
+
+    return { authorized: true, email: info.email };
+  } catch (err) {
+    return {
+      authorized: false,
+      error: 'Could not verify Google authentication: ' + (err && err.message ? err.message : String(err))
+    };
+  }
+}
+
+function padInvoiceNumber(num) {
+  var s = String(num);
+  while (s.length < 4) s = '0' + s;
+  return s;
+}
+
+function getOrSeedNextInvoiceNumber(props, minNextNumber) {
+  var raw = props.getProperty(INVOICE_COUNTER_PROP);
+  var current = parseInt(raw, 10);
+  if (isNaN(current) || current < 1) {
+    var seed = parseInt(minNextNumber, 10);
+    current = (!isNaN(seed) && seed >= 1) ? seed : 1;
+    props.setProperty(INVOICE_COUNTER_PROP, String(current));
+  }
+  return current;
+}
+
+function handleGetInvoiceCounter(payload, auth) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var nextNum = getOrSeedNextInvoiceNumber(props, payload.minNextNumber);
+    return {
+      success: true,
+      scriptVersion: APP_SCRIPT_VERSION,
+      email: auth.email,
+      hasAdvancedGmail: (typeof Gmail !== 'undefined' && Boolean(Gmail.Users)),
+      nextInvoiceNumber: nextNum
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleAllocateInvoiceNumber(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var current = getOrSeedNextInvoiceNumber(props, payload.minNextNumber);
+    var next = current + 1;
+    props.setProperty(INVOICE_COUNTER_PROP, String(next));
+    return {
+      success: true,
+      scriptVersion: APP_SCRIPT_VERSION,
+      invoiceNumber: padInvoiceNumber(current),
+      nextInvoiceNumber: next
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleSetInvoiceNumber(payload) {
+  var nextNum = parseInt(payload.nextInvoiceNumber, 10);
+  if (isNaN(nextNum) || nextNum < 1) {
+    return {
+      success: false,
+      scriptVersion: APP_SCRIPT_VERSION,
+      error: 'Next invoice number must be 1 or greater.'
+    };
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    PropertiesService.getScriptProperties().setProperty(INVOICE_COUNTER_PROP, String(nextNum));
+    return {
+      success: true,
+      scriptVersion: APP_SCRIPT_VERSION,
+      nextInvoiceNumber: nextNum
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleResetInvoiceNumbers() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    PropertiesService.getScriptProperties().setProperty(INVOICE_COUNTER_PROP, '1');
+    return {
+      success: true,
+      scriptVersion: APP_SCRIPT_VERSION,
+      nextInvoiceNumber: 1
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function resolveEventFolder(parentFolder, eventName, requestedFolderId) {
+  if (requestedFolderId) {
+    try {
+      var byId = DriveApp.getFolderById(requestedFolderId);
+      if (byId && !byId.isTrashed()) {
+        return { folder: byId, existed: true };
+      }
+    } catch (folderLookupErr) {
+      Logger.log('Stored folder ID lookup failed, falling back to name lookup: ' + folderLookupErr);
+    }
+  }
+
+  var existingFolders = parentFolder.getFoldersByName(eventName);
+  if (existingFolders.hasNext()) {
+    return { folder: existingFolders.next(), existed: true };
+  }
+  return { folder: parentFolder.createFolder(eventName), existed: false };
+}
+
+function deleteMatchingDrafts(subject) {
+  var replaced = false;
+  try {
+    if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Drafts) {
+      // Narrow candidate drafts with Gmail query, then confirm exact subject header before deleting
+      var cleanQuery = subject.replace(/["\\]/g, ' ').trim();
+      var listRes = Gmail.Users.Drafts.list('me', { q: 'subject:"' + cleanQuery + '"' });
+      var drafts = (listRes && listRes.drafts) ? listRes.drafts : [];
+      for (var i = 0; i < drafts.length; i++) {
+        var detail = Gmail.Users.Drafts.get('me', drafts[i].id, {
+          format: 'metadata',
+          metadataHeaders: ['Subject']
+        });
+        var headers = (detail && detail.message && detail.message.payload && detail.message.payload.headers)
+          ? detail.message.payload.headers
+          : [];
+        var subjHeader = '';
+        for (var h = 0; h < headers.length; h++) {
+          if (String(headers[h].name || '').toLowerCase() === 'subject') {
+            subjHeader = headers[h].value || '';
+            break;
+          }
+        }
+        if (subjHeader === subject) {
+          Gmail.Users.Drafts.remove('me', drafts[i].id);
+          replaced = true;
+        }
+      }
+      return replaced;
+    }
+
+    var existingDrafts = GmailApp.getDrafts();
+    for (var d = 0; d < existingDrafts.length; d++) {
+      if (existingDrafts[d].getMessage().getSubject() === subject) {
+        existingDrafts[d].deleteDraft();
+        replaced = true;
+      }
+    }
+  } catch (draftCheckErr) {
+    Logger.log('Could not check existing drafts: ' + draftCheckErr);
+  }
+  return replaced;
+}
+
+function handleSaveDocument(payload) {
+  var eventName = (payload.eventName || 'Untitled Event').trim();
+  var fileName = (payload.fileName || '').trim();
+  var pdfBase64 = payload.pdfBase64 || '';
+  var parentFolderId = extractFolderId(payload.parentFolderId || '');
+  var requestedFolderId = extractFolderId(payload.folderId || '');
+  var documentType = String(payload.documentType || (fileName.indexOf('INV') === 0 ? 'invoice' : 'blue_form')).toLowerCase();
+  var isInvoice = (documentType === 'invoice');
+
+  // Strip control characters only so Drive folders and email drafts keep punctuation such as colons
+  eventName = eventName.replace(/[\x00-\x1f\x7f]/g, '').substring(0, 100).trim() || 'Untitled Event';
+
+  if (!fileName) {
+    fileName = isInvoice ? ('INV_' + eventName + '.pdf') : ('BF_' + eventName + '.pdf');
+  }
+
+  if (!pdfBase64) {
+    return { success: false, scriptVersion: APP_SCRIPT_VERSION, error: 'Missing PDF data.' };
+  }
+  if (pdfBase64.length > 20 * 1024 * 1024) {
+    return { success: false, scriptVersion: APP_SCRIPT_VERSION, error: 'PDF data exceeds maximum size limit (20MB).' };
+  }
+
+  // Strip control characters and replace path-unsafe characters (preserving colons) in Drive/Gmail filenames
+  fileName = fileName.replace(/[\x00-\x1f\x7f]/g, '').replace(/[\\/*?"<>|]/g, '_').substring(0, 100).trim() || (isInvoice ? 'INV_Event.pdf' : 'BF_Event.pdf');
+
+  // 1. Decode the PDF bytes
+  var pdfBytes = Utilities.base64Decode(pdfBase64);
+  var pdfBlob = Utilities.newBlob(pdfBytes, 'application/pdf', fileName);
+
+  // 2. Find or create the "{event name}" folder inside the Parent Drive Folder (or root Drive)
+  var parentFolder = parentFolderId
+    ? DriveApp.getFolderById(parentFolderId)
+    : DriveApp.getRootFolder();
+
+  var resolvedFolder = resolveEventFolder(parentFolder, eventName, requestedFolderId);
+  var eventFolder = resolvedFolder.folder;
+  var folderExisted = resolvedFolder.existed;
+
+  // Trash any existing file with the exact same name in this folder
+  var existingFiles = eventFolder.getFilesByName(fileName);
+  var fileExisted = existingFiles.hasNext();
+  while (existingFiles.hasNext()) {
+    var oldFile = existingFiles.next();
+    try {
+      oldFile.setTrashed(true);
+    } catch (trashErr) {
+      Logger.log('Could not trash old file: ' + trashErr);
+    }
+  }
+
+  // Save the PDF file into the event folder
+  var savedFile = eventFolder.createFile(pdfBlob);
+
+  // 3. Build the Gmail Draft only for Blue Forms (skipped for Invoices)
+  var skipDraft = (payload.skipDraft === true || isInvoice);
+  var draftCreated = false;
+  var draftExisted = false;
+  if (!skipDraft) {
+    var subject = 'Blue Form - ' + eventName;
+    var plainBody = 'Hi,\n\nPlease find attached the Blue Form for ' + eventName + '.';
+    var htmlBody =
+      '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222; line-height: 1.5;">' +
+      '<p style="margin: 0 0 12px 0;">Hi,</p>' +
+      '<p style="margin: 0 0 12px 0;">Please find attached the Blue Form for ' + escapeHtml(eventName) + '.</p>' +
+      '</div>';
+
+    var signatureHtml = getGmailSignatureHtml();
+    if (signatureHtml) {
+      htmlBody += signatureHtml;
+    }
+
+    draftExisted = deleteMatchingDrafts(subject);
+    createGmailDraft(subject, plainBody, htmlBody, pdfBlob);
+    draftCreated = true;
+  }
+
+  return {
+    success: true,
+    scriptVersion: APP_SCRIPT_VERSION,
+    folderId: eventFolder.getId(),
+    folderName: eventFolder.getName(),
+    folderUrl: eventFolder.getUrl(),
+    folderExisted: folderExisted,
+    fileUrl: savedFile.getUrl(),
+    fileReplaced: fileExisted,
+    draftCreated: draftCreated,
+    draftReplaced: draftExisted
+  };
 }
 
 function extractFolderId(input) {
@@ -163,14 +431,6 @@ function extractFolderId(input) {
   if (folderMatch) return folderMatch[1];
   var idMatch = str.match(/[-\w]{25,}/);
   return idMatch ? idMatch[0] : str;
-}
-
-function getOrCreateSubfolder(parentFolder, folderName) {
-  var existing = parentFolder.getFoldersByName(folderName);
-  if (existing.hasNext()) {
-    return existing.next();
-  }
-  return parentFolder.createFolder(folderName);
 }
 
 function getGmailSignatureHtml() {
@@ -235,7 +495,6 @@ function createGmailDraft(subject, plainBody, htmlBody, pdfBlob) {
       attachments: [pdfBlob]
     });
   } catch (emptyRecipErr) {
-    // GmailApp.createDraft requires a non-empty recipient in some accounts; use the active user's email as placeholder
     var fallbackRecipient = Session.getActiveUser().getEmail() || 'recipient@example.com';
     GmailApp.createDraft(fallbackRecipient, subject, plainBody, {
       htmlBody: htmlBody,

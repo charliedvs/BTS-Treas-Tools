@@ -1565,7 +1565,10 @@
                 <label for="nextInvoiceNumberInput" style="margin-bottom: 0; color: var(--text-main); font-size: 0.82rem;">Next Invoice Number:</label>
                 <input type="number" id="nextInvoiceNumberInput" min="1" step="1" style="width: 75px; padding: 4px 8px; font-size: 0.82rem;" value="1">
               </div>
-              <button type="button" id="resetInvoiceNumbersBtn" class="btn-secondary btn-sm" style="color: var(--danger-text);" title="Wipe all assigned invoice numbers and start back at 0001">Reset to 0001</button>
+              <button type="button" id="resetInvoiceNumbersBtn" class="btn-secondary btn-sm" style="color: var(--danger-text);" title="Wipe all assigned invoice numbers and reset the central counter to 0001">Reset to 0001</button>
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.35;">
+              Invoice numbers are allocated centrally by Google Apps Script so multiple devices cannot issue duplicates.
             </div>
           </div>
         </div>
@@ -1578,7 +1581,7 @@
               <div style="font-size: 0.8rem; color: var(--text-main);">
                 <strong>Backend Automation:</strong> Connected (Built-in)
               </div>
-              <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm" title="Test connection to Google Apps Script">Test Connection</button>
+              <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm" title="Verify connection, authentication, and backend version">Test Connection</button>
             </div>
             <div id="googleTestStatus" class="field-hint" style="white-space: pre-line;"></div>
 
@@ -1592,6 +1595,22 @@
               <button type="submit" class="btn-primary btn-sm">Save Drive Folder</button>
             </div>
           </form>
+        </div>
+
+        <!-- Data Backup & Restore -->
+        <div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Data Backup &amp; Restore</div>
+          <div style="padding: 12px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="exportBackupJsonBtn" class="btn-secondary btn-sm" title="Download a full JSON backup of events, notes, quick links, and settings">Export JSON Backup</button>
+              <button type="button" id="exportEventsCsvBtn" class="btn-secondary btn-sm" title="Download events as a CSV spreadsheet">Export CSV</button>
+              <input type="file" id="importBackupFileInput" class="file-input-hidden" accept=".json,application/json">
+              <button type="button" id="importBackupJsonBtn" class="btn-secondary btn-sm" title="Restore events, notes, and quick links from a JSON backup">Import JSON Backup</button>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+              Events, notes, and quick links are stored in this browser. Export a backup before clearing site data, switching laptops, or treasurer handover.
+            </div>
+          </div>
         </div>
 
         <div class="modal-actions" style="margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border-color);">
@@ -2298,10 +2317,16 @@
       };
     }
 
-    async function generateBlueFormPdf(eventObj) {
+    async function generateBlueFormPdf(eventObj, auth = null) {
       const validation = validateBlueForm(eventObj);
       if (!validation.valid) {
         showValidationModal(validation);
+        return;
+      }
+
+      const resolvedAuth = auth || await ensureBackendAuthToken();
+      if (!resolvedAuth) {
+        showToast('Google Sign-In (treas@bts-crew.com) is required to sync with Google Drive & Gmail.', 6000);
         return;
       }
 
@@ -2552,18 +2577,9 @@
 
         // Save modified PDF and trigger browser download
         const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const safeEventName = eventName.replace(/[\x00-\x1f\x7f]+/g, '').replace(/[\\/*?"<>|]+/g, '_').trim() || 'Event';
         const fileName = `BF_${safeEventName}.pdf`;
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        triggerBrowserPdfDownload(pdfBytes, fileName);
 
         const appsScriptUrl = getEffectiveAppsScriptUrl();
         if (appsScriptUrl) {
@@ -2571,10 +2587,12 @@
           await triggerGoogleDriveAndGmailAutomation({
             appsScriptUrl,
             parentFolderId: getEffectiveParentDriveFolder(),
+            eventObj,
             eventName,
             fileName,
             pdfBytes,
-            documentType: 'blue_form'
+            documentType: 'blue_form',
+            auth: resolvedAuth
           });
         } else {
           showToast(`Downloaded "${fileName}" (Client: ${clientName} → Dept: ${deptCode})`);
@@ -2585,21 +2603,42 @@
       }
     }
 
-    async function generateInvoicePdf(eventObj) {
+    async function generateInvoicePdf(eventObj, auth = null) {
       const validation = validateInvoice(eventObj);
       if (!validation.valid) {
         showValidationModal(validation);
         return;
       }
 
-      // 1. Invoice Number (starts at 0001, increments by 1 per new invoice)
+      const resolvedAuth = auth || await ensureBackendAuthToken();
+      if (!resolvedAuth) {
+        showToast('Google Sign-In (treas@bts-crew.com) is required for invoice numbering and Drive sync.', 6000);
+        return;
+      }
+
+      // 1. Central Invoice Number allocation via Google Apps Script (reuses existing number if regenerating)
       let invoiceNumber = eventObj.invoiceNumber;
       if (!invoiceNumber) {
-        let nextNum = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10);
-        if (isNaN(nextNum) || nextNum < 1) nextNum = 1;
-        invoiceNumber = String(nextNum).padStart(4, '0');
+        let localSeed = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10);
+        if (isNaN(localSeed) || localSeed < 1) localSeed = 1;
+
+        const allocRes = await callAppsScriptBackend('allocateInvoiceNumber', { minNextNumber: localSeed }, resolvedAuth);
+        if (!allocRes.success || !allocRes.invoiceNumber) {
+          const isOldDeployment = /Missing PDF data/i.test(allocRes.error || '');
+          const errMsg = isOldDeployment
+            ? 'Backend update needed: please redeploy google-apps-script.js (v2) to enable central invoice numbering.'
+            : ('Could not allocate invoice number: ' + (allocRes.error || 'Unknown backend error'));
+          showToast(errMsg, 7000);
+          return;
+        }
+
+        invoiceNumber = String(allocRes.invoiceNumber);
         eventObj.invoiceNumber = invoiceNumber;
-        localStorage.setItem('treastrack_next_invoice_number', String(nextNum + 1));
+        if (allocRes.nextInvoiceNumber) {
+          try {
+            localStorage.setItem('treastrack_next_invoice_number', String(allocRes.nextInvoiceNumber));
+          } catch (storageErr) {}
+        }
         saveEvents();
       }
 
@@ -2630,16 +2669,14 @@
       // 5. Item description: "Production charge for [event name]"
       const itemDescription = `Production charge for ${eventName}`;
 
-      // 6. Total ex vat (event value from website)
-      const chargeNum = parseFloat(eventObj.charge || 0) || 0;
+      // 6-8. Amounts with exact 2dp penny rounding so Ex VAT + VAT = Total inc VAT
+      const chargeNum = Math.round((parseFloat(eventObj.charge || 0) || 0) * 100) / 100;
       const chargeFormatted = chargeNum.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      // 7. VAT (20% of ex vat value)
-      const vatNum = chargeNum * 0.20;
+      const vatNum = Math.round(chargeNum * 0.20 * 100) / 100;
       const vatFormatted = vatNum.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      // 8. Total inc vat (previous values added together)
-      const totalIncVatNum = chargeNum + vatNum;
+      const totalIncVatNum = Math.round((chargeNum + vatNum) * 100) / 100;
       const totalIncVatFormatted = totalIncVatNum.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // 9. Amount (event value)
@@ -2901,17 +2938,8 @@
 
         // 11. Download the edited copy of the invoice with name "INV[invoice number]"
         const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const fileName = `INV${invoiceNumber}.pdf`;
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        triggerBrowserPdfDownload(pdfBytes, fileName);
 
         const appsScriptUrl = getEffectiveAppsScriptUrl();
         if (appsScriptUrl) {
@@ -2919,10 +2947,12 @@
           await triggerGoogleDriveAndGmailAutomation({
             appsScriptUrl,
             parentFolderId: getEffectiveParentDriveFolder(),
+            eventObj,
             eventName,
             fileName,
             pdfBytes,
-            documentType: 'invoice'
+            documentType: 'invoice',
+            auth: resolvedAuth
           });
         } else {
           showToast(`✓ Downloaded "${fileName}" (Invoice #${invoiceNumber})`, 5000);
@@ -2943,64 +2973,119 @@
       return btoa(binary);
     }
 
-    async function triggerGoogleDriveAndGmailAutomation({ appsScriptUrl, parentFolderId, eventName, fileName, pdfBytes, documentType = 'blue_form' }) {
-      const cleanUrl = appsScriptUrl.trim();
+    /** Trigger a client-side file download from a Blob and revoke the temporary URL. */
+    function triggerBlobDownload(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    /** Trigger a browser download for a generated PDF byte array. */
+    function triggerBrowserPdfDownload(pdfBytes, fileName) {
+      triggerBlobDownload(new Blob([pdfBytes], { type: 'application/pdf' }), fileName);
+    }
+
+    /** Send an authenticated JSON POST request to the Google Apps Script Web App. */
+    async function callAppsScriptBackend(action, payloadData = {}, auth = null) {
+      const cleanUrl = getEffectiveAppsScriptUrl();
       if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(cleanUrl)) {
-        showToast('Invalid Apps Script URL: make sure it is the Web App URL ending in /exec.', 6000);
-        return;
+        return { success: false, error: 'Invalid Apps Script URL: make sure it is the Web App URL ending in /exec.' };
       }
+
+      const resolvedAuth = auth || await ensureBackendAuthToken();
+      if (!resolvedAuth || !resolvedAuth.token) {
+        return { success: false, code: 'UNAUTHORIZED', error: 'Google Sign-In (treas@bts-crew.com) is required.' };
+      }
+
+      const bodyPayload = Object.assign({}, payloadData, {
+        action,
+        authToken: resolvedAuth.token,
+        authTokenType: resolvedAuth.tokenType || 'access_token'
+      });
 
       try {
-        const isInvoice = (documentType === 'invoice');
-        const pdfBase64 = uint8ArrayToBase64(pdfBytes);
-        const payload = {
-          eventName,
-          fileName,
-          pdfBase64,
-          parentFolderId,
-          documentType,
-          skipDraft: isInvoice
-        };
+        // credentials: 'omit' prevents multi-account Google cookie errors; text/plain avoids CORS preflight
+        const res = await fetch(cleanUrl, {
+          method: 'POST',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(bodyPayload)
+        });
 
-        // credentials: 'omit' prevents the browser from sending multi-account Google cookies
-        // (which cause Google Apps Script to fail with "Sorry, unable to open the file at present").
-        // mode: 'no-cors' + text/plain avoids Origin: null redirect blocks when opened from file://.
-        let result = null;
-        try {
-          const res = await fetch(cleanUrl, {
-            method: 'POST',
-            credentials: 'omit',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-          });
-          if (res && res.ok) {
-            result = await res.json();
-          }
-        } catch (corsErr) {
-          // Fallback to no-cors if CORS response is opaque or blocked
-          await fetch(cleanUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            credentials: 'omit',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-          });
+        if (!res || !res.ok) {
+          return {
+            success: false,
+            error: `Backend HTTP ${res ? res.status : 'unknown'} error.`
+          };
         }
 
-        if (result && result.success === false) {
-          showToast('Google Drive/Gmail error: ' + (result.error || 'Unknown error'), 6000);
-          return;
+        const data = await res.json();
+        if (data && data.code === 'UNAUTHORIZED') {
+          setStoredBackendToken(null);
         }
-
-        if (isInvoice) {
-          showToast('Invoice created, saved to drive. Please upload to Iplicit.', 5000);
-        } else {
-          showToast('Blue form created, saved to drive, email drafted.', 5000);
-        }
+        return data || { success: false, error: 'Empty response from Google Apps Script.' };
       } catch (err) {
-        console.error('Failed to call Google Apps Script Web App:', err);
-        showToast('Could not reach Google Apps Script URL. Check Google Setup.', 6000);
+        if (window.location.protocol === 'file:') {
+          return {
+            success: false,
+            isFileOriginError: true,
+            error: 'Browser security blocks verifying Apps Script responses from file://. Host on GitHub Pages or localhost to confirm Drive sync.'
+          };
+        }
+        return {
+          success: false,
+          error: err && err.message ? err.message : 'Network error reaching Google Apps Script.'
+        };
       }
+    }
+
+    async function triggerGoogleDriveAndGmailAutomation({ appsScriptUrl, parentFolderId, eventObj, eventName, fileName, pdfBytes, documentType = 'blue_form', auth = null }) {
+      if (appsScriptUrl && !/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(appsScriptUrl.trim())) {
+        showToast('Invalid Apps Script URL: make sure it is the Web App URL ending in /exec.', 6000);
+        return false;
+      }
+
+      const isInvoice = (documentType === 'invoice');
+      const result = await callAppsScriptBackend('saveDocument', {
+        eventName,
+        fileName,
+        pdfBase64: uint8ArrayToBase64(pdfBytes),
+        parentFolderId,
+        folderId: eventObj && eventObj.driveFolderId ? eventObj.driveFolderId : '',
+        documentType,
+        skipDraft: isInvoice
+      }, auth);
+
+      if (!result || result.success !== true) {
+        const prefix = isInvoice
+          ? 'Invoice PDF downloaded, but Google Drive sync could not be verified: '
+          : 'Blue form PDF downloaded, but Drive/Gmail sync could not be verified: ';
+        showToast(prefix + (result && result.error ? result.error : 'Unknown error.'), 6500);
+        return false;
+      }
+
+      if (eventObj) {
+        if (result.folderId) eventObj.driveFolderId = result.folderId;
+        const nowIso = new Date().toISOString();
+        if (isInvoice) {
+          eventObj.invoiceGeneratedAt = nowIso;
+        } else {
+          eventObj.blueFormGeneratedAt = nowIso;
+        }
+        saveEvents();
+      }
+
+      if (isInvoice) {
+        showToast('Invoice created, saved to drive. Please upload to Iplicit.', 5000);
+      } else {
+        showToast('Blue form created, saved to drive, email drafted.', 5000);
+      }
+      return true;
     }
 
     // ==========================================
@@ -3161,31 +3246,78 @@
         nextInvoiceNumberInput.value = localStorage.getItem('treastrack_next_invoice_number') || '1';
       }
       settingsModalBackdrop.classList.add('open');
+
+      // Silently refresh the live central counter if a valid Google session token is already available
+      const existingAuth = getStoredBackendToken();
+      if (existingAuth) {
+        const localSeed = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10) || 1;
+        callAppsScriptBackend('getInvoiceCounter', { minNextNumber: localSeed }, existingAuth).then((res) => {
+          if (res && res.success && res.nextInvoiceNumber) {
+            try {
+              localStorage.setItem('treastrack_next_invoice_number', String(res.nextInvoiceNumber));
+            } catch (err) {}
+            if (nextInvoiceNumberInput && settingsModalBackdrop.classList.contains('open')) {
+              nextInvoiceNumberInput.value = String(res.nextInvoiceNumber);
+            }
+          }
+        });
+      }
     }
 
     const nextInvoiceNumberInput = document.getElementById('nextInvoiceNumberInput');
     if (nextInvoiceNumberInput) {
-      nextInvoiceNumberInput.addEventListener('change', (e) => {
+      nextInvoiceNumberInput.addEventListener('change', async (e) => {
         const val = parseInt(e.target.value, 10);
-        if (!isNaN(val) && val >= 1) {
-          localStorage.setItem('treastrack_next_invoice_number', String(val));
-          showToast(`Next invoice number set to ${String(val).padStart(4, '0')}.`);
+        if (isNaN(val) || val < 1) return;
+
+        const auth = await ensureBackendAuthToken();
+        if (!auth) {
+          showToast('Google Sign-In required to update the central invoice counter.', 5000);
+          e.target.value = localStorage.getItem('treastrack_next_invoice_number') || '1';
+          return;
         }
+
+        const res = await callAppsScriptBackend('setInvoiceNumber', { nextInvoiceNumber: val }, auth);
+        if (!res || !res.success) {
+          showToast('Could not update central counter: ' + (res && res.error ? res.error : 'Redeploy google-apps-script.js (v2).'), 6000);
+          e.target.value = localStorage.getItem('treastrack_next_invoice_number') || '1';
+          return;
+        }
+
+        try {
+          localStorage.setItem('treastrack_next_invoice_number', String(res.nextInvoiceNumber));
+        } catch (err) {}
+        showToast(`Central next invoice number set to ${String(res.nextInvoiceNumber).padStart(4, '0')}.`);
       });
     }
 
     const resetInvoiceNumbersBtn = document.getElementById('resetInvoiceNumbersBtn');
     if (resetInvoiceNumbersBtn) {
-      resetInvoiceNumbersBtn.addEventListener('click', () => {
-        if (!confirm('Are you sure you want to reset invoice numbering back to 0001 and clear existing invoice numbers on all events?')) return;
-        localStorage.setItem('treastrack_next_invoice_number', '1');
+      resetInvoiceNumbersBtn.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to reset central invoice numbering back to 0001 and clear existing invoice numbers on all events?')) return;
+
+        const auth = await ensureBackendAuthToken();
+        if (!auth) {
+          showToast('Google Sign-In required to reset the central invoice counter.', 5000);
+          return;
+        }
+
+        const res = await callAppsScriptBackend('resetInvoiceNumbers', {}, auth);
+        if (!res || !res.success) {
+          showToast('Could not reset central counter: ' + (res && res.error ? res.error : 'Redeploy google-apps-script.js (v2).'), 6000);
+          return;
+        }
+
+        try {
+          localStorage.setItem('treastrack_next_invoice_number', '1');
+        } catch (err) {}
         if (nextInvoiceNumberInput) nextInvoiceNumberInput.value = '1';
         events.forEach((ev) => {
           delete ev.invoiceNumber;
         });
         saveEvents();
         renderEvents();
-        showToast('✓ All invoice numbers wiped. Counter reset to 0001.');
+        showToast('✓ All invoice numbers cleared. Central counter reset to 0001.');
       });
     }
 
@@ -3209,17 +3341,30 @@
         googleTestStatus.textContent = '✗ No Apps Script URL configured.';
         return;
       }
-      googleTestStatus.textContent = 'Testing connection to Google Apps Script...';
-      try {
-        await fetch(url, {
-          method: 'GET',
-          mode: 'no-cors',
-          credentials: 'omit'
-        });
+      googleTestStatus.textContent = 'Verifying connection & Google authentication...';
+      const auth = await ensureBackendAuthToken();
+      if (!auth) {
+        googleTestStatus.textContent = '✗ Google Sign-In (treas@bts-crew.com) is required to verify backend access.';
+        return;
+      }
+      const localSeed = parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10) || 1;
+      const res = await callAppsScriptBackend('status', { minNextNumber: localSeed }, auth);
+      if (res && res.success && res.scriptVersion >= 2) {
+        if (res.nextInvoiceNumber) {
+          try {
+            localStorage.setItem('treastrack_next_invoice_number', String(res.nextInvoiceNumber));
+          } catch (err) {}
+          if (nextInvoiceNumberInput) nextInvoiceNumberInput.value = String(res.nextInvoiceNumber);
+        }
+        const invLabel = String(res.nextInvoiceNumber || 1).padStart(4, '0');
+        const gmailNote = res.hasAdvancedGmail ? 'Advanced Gmail API: Enabled' : 'GmailApp fallback active';
         googleTestStatus.textContent =
-          '✓ Google Apps Script backend automation is active and reachable!';
-      } catch (err) {
-        googleTestStatus.textContent = '✗ Could not reach URL. Check your internet connection.';
+          `✓ Connected to Apps Script v${res.scriptVersion} as ${res.email || AUTHORIZED_EMAIL}.\nNext central invoice: INV-${invLabel} (${gmailNote}).`;
+      } else if (res && /Missing PDF data/i.test(res.error || '')) {
+        googleTestStatus.textContent =
+          '⚠ Apps Script is reachable, but still running old v1 code.\nCopy google-apps-script.js into script.google.com and deploy a New version to enable security & central numbering.';
+      } else {
+        googleTestStatus.textContent = '✗ ' + (res && res.error ? res.error : 'Could not verify Google Apps Script connection.');
       }
     });
 
@@ -3254,6 +3399,7 @@
     const clientCodeHint = document.getElementById('clientCodeHint');
 
     let editingEventId = null;
+    const activeGenerationMap = new Map();
     let events = [];
     try {
       const stored = localStorage.getItem('treastrack_events');
@@ -3274,28 +3420,22 @@
       }
     });
 
-    // One-time automatic wipe of all invoice numbers for a fresh start at 0001
-    if (!localStorage.getItem('treastrack_invoice_reset_v1')) {
-      localStorage.setItem('treastrack_next_invoice_number', '1');
-      events.forEach((ev) => {
-        if (ev.invoiceNumber) {
-          delete ev.invoiceNumber;
-          eventsUpdated = true;
-        }
-      });
-      localStorage.setItem('treastrack_invoice_reset_v1', 'true');
-    }
-
     if (eventsUpdated) {
       try {
         localStorage.setItem('treastrack_events', JSON.stringify(events));
       } catch (err) {}
     }
 
+    /** Persist events array to browser storage, alerting the user if storage quota fails. */
     function saveEvents() {
       try {
         localStorage.setItem('treastrack_events', JSON.stringify(events));
-      } catch (err) {}
+        return true;
+      } catch (err) {
+        console.error('Failed to save events:', err);
+        showToast('Warning: Could not save events (browser storage full or blocked). Export a backup in Settings.', 7000);
+        return false;
+      }
     }
 
     function sortEvents() {
@@ -3381,6 +3521,34 @@
       return `${sD} ${sMonth} ${sY} &ndash; ${eD} ${eMonth} ${eY}`;
     }
 
+    /** Prevent duplicate generation clicks while validating, authenticating, and syncing a document. */
+    async function handleEventDocumentAction(id, docType, validateFn, generateFn) {
+      if (activeGenerationMap.has(id)) return;
+      const targetEvent = events.find((item) => item.id === id);
+      if (!targetEvent) return;
+
+      const validation = validateFn(targetEvent);
+      if (!validation.valid) {
+        showValidationModal(validation);
+        return;
+      }
+
+      const auth = await ensureBackendAuthToken();
+      if (!auth) {
+        showToast('Google Sign-In (treas@bts-crew.com) is required to sync with Drive & Gmail.', 6000);
+        return;
+      }
+
+      activeGenerationMap.set(id, docType);
+      renderEvents();
+      try {
+        await generateFn(targetEvent, auth);
+      } finally {
+        activeGenerationMap.delete(id);
+        renderEvents();
+      }
+    }
+
     function renderEvents() {
       sortEvents();
 
@@ -3422,6 +3590,14 @@
           : `Client: ${clientDisplay} (Not listed)`;
 
         const dateRangeDisplay = formatHumanDateRange(ev.startDate, ev.endDate);
+        const activeGenType = activeGenerationMap.get(ev.id);
+        const isGeneratingAny = Boolean(activeGenType);
+        const bfDisabledAttr = (!isClientListed || isGeneratingAny) ? 'disabled' : '';
+        const invDisabledAttr = (isClientListed || isGeneratingAny) ? 'disabled' : '';
+        const bfTitleAttr = !isClientListed ? 'title="Client not listed — Blue Form not required"' : '';
+        const invTitleAttr = isClientListed ? 'title="Client listed in SU directory — Blue Form required instead"' : '';
+        const bfLabel = activeGenType === 'blue_form' ? 'Generating...' : 'Blue Form';
+        const invLabel = activeGenType === 'invoice' ? 'Generating...' : 'Invoice';
 
         card.innerHTML = `
           <div class="event-card-top">
@@ -3453,8 +3629,8 @@
               </label>
             </div>
             <div class="card-footer-actions">
-              <button class="btn-secondary btn-sm btn-blue-form" type="button" data-id="${ev.id}" ${isClientListed ? '' : 'disabled title="Client not listed — Blue Form not required"'}>Blue Form</button>
-              <button class="btn-secondary btn-sm btn-invoice" type="button" data-id="${ev.id}" ${!isClientListed ? '' : 'disabled title="Client listed in SU directory — Blue Form required instead"'}>Invoice</button>
+              <button class="btn-secondary btn-sm btn-blue-form" type="button" data-id="${ev.id}" ${bfDisabledAttr} ${bfTitleAttr}>${bfLabel}</button>
+              <button class="btn-secondary btn-sm btn-invoice" type="button" data-id="${ev.id}" ${invDisabledAttr} ${invTitleAttr}>${invLabel}</button>
             </div>
           </div>
         `;
@@ -3475,43 +3651,18 @@
         });
       });
 
-      // Attach Blue Form button handlers on each event card
+      // Attach Blue Form & Invoice button handlers with duplicate-click locking
       document.querySelectorAll('.btn-blue-form').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
           if (e.currentTarget.disabled) return;
-          const id = e.currentTarget.getAttribute('data-id');
-          const targetEvent = events.find((item) => item.id === id);
-          if (!targetEvent) return;
-
-          // 1. Error checking before generation
-          const validation = validateBlueForm(targetEvent);
-          if (!validation.valid) {
-            showValidationModal(validation);
-            return;
-          }
-
-          // 2. Generate Blue Form PDF
-          await generateBlueFormPdf(targetEvent);
+          handleEventDocumentAction(e.currentTarget.getAttribute('data-id'), 'blue_form', validateBlueForm, generateBlueFormPdf);
         });
       });
 
-      // Attach Invoice button handlers on each event card
       document.querySelectorAll('.btn-invoice').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
           if (e.currentTarget.disabled) return;
-          const id = e.currentTarget.getAttribute('data-id');
-          const targetEvent = events.find((item) => item.id === id);
-          if (!targetEvent) return;
-
-          // 1. Error checking before generation
-          const validation = validateInvoice(targetEvent);
-          if (!validation.valid) {
-            showValidationModal(validation);
-            return;
-          }
-
-          // 2. Generate Invoice PDF
-          await generateInvoicePdf(targetEvent);
+          handleEventDocumentAction(e.currentTarget.getAttribute('data-id'), 'invoice', validateInvoice, generateInvoicePdf);
         });
       });
 
@@ -3526,13 +3677,17 @@
         });
       });
 
-      // Attach delete handlers
+      // Attach delete handlers with confirmation prompt
       document.querySelectorAll('.btn-delete').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           const id = e.currentTarget.getAttribute('data-id');
+          const targetEvent = events.find((item) => item.id === id);
+          if (!targetEvent) return;
+          if (!confirm(`Delete event "${targetEvent.name || 'Untitled'}"? This cannot be undone.`)) return;
           events = events.filter((item) => item.id !== id);
           saveEvents();
           renderEvents();
+          showToast(`Deleted "${targetEvent.name || 'event'}".`);
         });
       });
 
@@ -3649,6 +3804,7 @@
     // ==========================================
     const AUTHORIZED_EMAIL = 'treas@bts-crew.com';
     const AUTH_STORAGE_KEY = 'treastrack_auth_user';
+    const AUTH_TOKEN_SESSION_KEY = 'treastrack_auth_token';
     const CLIENT_ID_STORAGE_KEY = 'treastrack_google_client_id';
 
     const loginOverlay = document.getElementById('loginOverlay');
@@ -3733,16 +3889,91 @@
     }
 
     let tokenClient = null;
+    let pendingTokenResolvers = [];
 
-    function authorizeUser(userData) {
+    /** Read cached short-lived Google OAuth token from sessionStorage if valid for >60s. */
+    function getStoredBackendToken() {
+      try {
+        const raw = sessionStorage.getItem(AUTH_TOKEN_SESSION_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.token) return null;
+        if (parsed.expiresAt && (parsed.expiresAt - 60000 <= Date.now())) {
+          sessionStorage.removeItem(AUTH_TOKEN_SESSION_KEY);
+          return null;
+        }
+        return { token: parsed.token, tokenType: parsed.tokenType || 'access_token' };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /** Store or clear the active Google OAuth token in sessionStorage (tab-scoped). */
+    function setStoredBackendToken(tokenObj) {
+      try {
+        if (tokenObj && tokenObj.token) {
+          sessionStorage.setItem(AUTH_TOKEN_SESSION_KEY, JSON.stringify(tokenObj));
+        } else {
+          sessionStorage.removeItem(AUTH_TOKEN_SESSION_KEY);
+        }
+      } catch (e) {}
+    }
+
+    /** Resolve all queued promises awaiting a Google token refresh/login callback. */
+    function resolvePendingBackendTokens(result) {
+      const resolvers = pendingTokenResolvers.splice(0, pendingTokenResolvers.length);
+      for (const resolve of resolvers) {
+        try {
+          resolve(result);
+        } catch (err) {}
+      }
+    }
+
+    /** Return a valid Google token for backend verification, refreshing interactively if needed. */
+    function ensureBackendAuthToken() {
+      const cached = getStoredBackendToken();
+      if (cached) return Promise.resolve(cached);
+      if (!tokenClient) return Promise.resolve(null);
+
+      return new Promise((resolve) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            const idx = pendingTokenResolvers.indexOf(wrappedResolve);
+            if (idx !== -1) pendingTokenResolvers.splice(idx, 1);
+            resolve(null);
+          }
+        }, 45000);
+
+        const wrappedResolve = (val) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(val);
+        };
+
+        pendingTokenResolvers.push(wrappedResolve);
+        try {
+          tokenClient.requestAccessToken({ prompt: '', hint: AUTHORIZED_EMAIL });
+        } catch (err) {
+          wrappedResolve(null);
+        }
+      });
+    }
+
+    function authorizeUser(userData, silent = false) {
       const email = (userData.email || '').trim().toLowerCase();
       if (email === AUTHORIZED_EMAIL.toLowerCase()) {
+        const wasAlreadyVisible = appContainer.style.display === 'block';
         clearLoginError();
         setStoredAuthUser(userData);
         userPillEmail.textContent = userData.email;
         loginOverlay.style.display = 'none';
         appContainer.style.display = 'block';
-        showToast(`Signed in as ${userData.email}`);
+        if (!silent && !wasAlreadyVisible) {
+          showToast(`Signed in as ${userData.email}`);
+        }
         return true;
       } else {
         if (window.google?.accounts?.id) {
@@ -3777,11 +4008,20 @@
         showLoginError('Google Sign-In failed: Could not read email from credential token.');
         return;
       }
-      authorizeUser({
+      const ok = authorizeUser({
         email: payload.email,
         name: payload.name || 'BTS Treasurer',
         sub: payload.sub
       });
+      if (ok) {
+        setStoredBackendToken({
+          token: response.credential,
+          tokenType: 'id_token',
+          expiresAt: payload.exp ? payload.exp * 1000 : Date.now() + 3600 * 1000
+        });
+      } else {
+        setStoredBackendToken(null);
+      }
     }
 
     function triggerGoogleSignIn() {
@@ -3803,6 +4043,8 @@
 
     function signOut() {
       setStoredAuthUser(null);
+      setStoredBackendToken(null);
+      resolvePendingBackendTokens(null);
       appContainer.style.display = 'none';
       loginOverlay.style.display = 'flex';
       clearLoginError();
@@ -3870,11 +4112,16 @@
               scope: 'openid profile email https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
               prompt: 'select_account',
               hint: AUTHORIZED_EMAIL,
+              error_callback: () => {
+                resolvePendingBackendTokens(null);
+              },
               callback: async (tokenResponse) => {
                 if (tokenResponse.error) {
                   if (tokenResponse.error !== 'popup_closed_by_user') {
                     showLoginError('Google Sign-In error: ' + (tokenResponse.error_description || tokenResponse.error));
                   }
+                  setStoredBackendToken(null);
+                  resolvePendingBackendTokens(null);
                   return;
                 }
                 try {
@@ -3883,13 +4130,30 @@
                   });
                   if (!res.ok) throw new Error('HTTP ' + res.status);
                   const profile = await res.json();
-                  authorizeUser({
+                  const ok = authorizeUser({
                     email: profile.email,
                     name: profile.name || 'BTS Treasurer',
                     picture: profile.picture
                   });
+                  if (ok) {
+                    const expiresInSec = Number(tokenResponse.expires_in || 3600);
+                    setStoredBackendToken({
+                      token: tokenResponse.access_token,
+                      tokenType: 'access_token',
+                      expiresAt: Date.now() + (expiresInSec * 1000)
+                    });
+                    resolvePendingBackendTokens({
+                      token: tokenResponse.access_token,
+                      tokenType: 'access_token'
+                    });
+                  } else {
+                    setStoredBackendToken(null);
+                    resolvePendingBackendTokens(null);
+                  }
                 } catch (err) {
                   showLoginError('Failed to retrieve user profile from Google: ' + err.message);
+                  setStoredBackendToken(null);
+                  resolvePendingBackendTokens(null);
                 }
               }
             });
@@ -4390,6 +4654,141 @@
     }
 
     renderQuickLinksWidget();
+
+    // ==========================================
+    // Data Backup & Restore (JSON Backup + CSV Export)
+    // ==========================================
+    const exportBackupJsonBtn = document.getElementById('exportBackupJsonBtn');
+    const exportEventsCsvBtn = document.getElementById('exportEventsCsvBtn');
+    const importBackupJsonBtn = document.getElementById('importBackupJsonBtn');
+    const importBackupFileInput = document.getElementById('importBackupFileInput');
+
+    /** Quote a CSV cell and prefix formula-trigger characters on free-text fields. */
+    function escapeCsvCell(val, protectFormula = true) {
+      let str = (val === null || val === undefined) ? '' : String(val);
+      if (protectFormula && /^[=+\-@\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+
+    /** Export all current events as an Excel/Sheets-ready CSV file. */
+    function exportEventsCsv() {
+      const headers = ['Event Name', 'Client', 'Dept Code', 'Contact', 'Charge (GBP)', 'Start Date', 'End Date', 'Document Type', 'Invoice Number', 'Invoice Sent'];
+      const rows = events.map((ev) => {
+        const deptCode = ev.clientName ? findDepartmentCodeForClient(ev.clientName) : '';
+        const docType = deptCode ? 'Blue Form' : 'Invoice';
+        const charge = (Math.round((parseFloat(ev.charge || 0) || 0) * 100) / 100).toFixed(2);
+        return [
+          escapeCsvCell(ev.name || ''),
+          escapeCsvCell(ev.clientName || ''),
+          escapeCsvCell(deptCode),
+          escapeCsvCell(ev.contactName || ''),
+          escapeCsvCell(charge, false),
+          escapeCsvCell(ev.startDate || '', false),
+          escapeCsvCell(ev.endDate || '', false),
+          escapeCsvCell(docType, false),
+          escapeCsvCell(ev.invoiceNumber ? `INV-${ev.invoiceNumber}` : '', false),
+          escapeCsvCell(ev.invoiceSent ? 'Yes' : 'No', false)
+        ].join(',');
+      });
+      const csv = [headers.map((h) => escapeCsvCell(h, false)).join(','), ...rows].join('\r\n');
+      triggerBlobDownload(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), `bts-treas-tools-events-${getLocalTodayIso()}.csv`);
+      showToast(`Exported ${events.length} event${events.length === 1 ? '' : 's'} to CSV.`);
+    }
+
+    /** Export a full JSON backup excluding credentials/session tokens. */
+    function exportBackupJson() {
+      const backup = {
+        app: 'BTS Treas Tools',
+        backupVersion: 1,
+        exportedAt: new Date().toISOString(),
+        events,
+        nextInvoiceNumber: parseInt(localStorage.getItem('treastrack_next_invoice_number') || '1', 10) || 1,
+        notes: localStorage.getItem(NOTES_STORAGE_KEY) || '',
+        quickLinks: getStoredQuickLinks(),
+        settings: {
+          parentDriveFolder: localStorage.getItem('treastrack_parent_drive_folder') || '',
+          fieldMapping: customFieldMapping || {}
+        }
+      };
+      triggerBlobDownload(
+        new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }),
+        `bts-treas-tools-backup-${getLocalTodayIso()}.json`
+      );
+      showToast('Exported JSON backup.');
+    }
+
+    /** Validate and restore events, notes, quick links, and settings from a JSON backup file. */
+    async function importBackupJson(file) {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        if (!parsed || !Array.isArray(parsed.events)) {
+          showToast('Invalid backup file: missing events list.', 5000);
+          return;
+        }
+
+        const count = parsed.events.length;
+        const exportedLabel = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString('en-GB') : 'unknown date';
+        if (!confirm(`Restore backup from ${exportedLabel} (${count} events)? This will replace current browser events, notes, and quick links.`)) {
+          return;
+        }
+
+        events = parsed.events
+          .filter((ev) => ev && typeof ev === 'object')
+          .map((ev) => Object.assign({}, ev, {
+            id: ev.id || ('evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7)),
+            name: String(ev.name || 'Untitled Event'),
+            clientName: String(ev.clientName || ''),
+            contactName: String(ev.contactName || '')
+          }));
+        saveEvents();
+
+        if (typeof parsed.notes === 'string') {
+          localStorage.setItem(NOTES_STORAGE_KEY, parsed.notes);
+          if (notesWidgetText) notesWidgetText.value = parsed.notes;
+        }
+        if (Array.isArray(parsed.quickLinks)) {
+          saveStoredQuickLinks(parsed.quickLinks);
+          renderQuickLinksWidget();
+        }
+        if (parsed.settings && typeof parsed.settings === 'object') {
+          if (typeof parsed.settings.parentDriveFolder === 'string') {
+            if (parsed.settings.parentDriveFolder.trim()) {
+              localStorage.setItem('treastrack_parent_drive_folder', parsed.settings.parentDriveFolder.trim());
+            } else {
+              localStorage.removeItem('treastrack_parent_drive_folder');
+            }
+          }
+          if (parsed.settings.fieldMapping && typeof parsed.settings.fieldMapping === 'object') {
+            customFieldMapping = parsed.settings.fieldMapping;
+            localStorage.setItem('treastrack_field_mapping', JSON.stringify(customFieldMapping));
+          }
+        }
+        if (parsed.nextInvoiceNumber && parseInt(parsed.nextInvoiceNumber, 10) >= 1) {
+          localStorage.setItem('treastrack_next_invoice_number', String(parseInt(parsed.nextInvoiceNumber, 10)));
+        }
+
+        renderEvents();
+        showToast(`✓ Restored ${events.length} events from backup.`, 5000);
+      } catch (err) {
+        console.error('Failed importing JSON backup:', err);
+        showToast('Could not import backup: invalid JSON file.', 5000);
+      }
+    }
+
+    if (exportBackupJsonBtn) exportBackupJsonBtn.addEventListener('click', exportBackupJson);
+    if (exportEventsCsvBtn) exportEventsCsvBtn.addEventListener('click', exportEventsCsv);
+    if (importBackupJsonBtn && importBackupFileInput) {
+      importBackupJsonBtn.addEventListener('click', () => importBackupFileInput.click());
+      importBackupFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) await importBackupJson(file);
+        importBackupFileInput.value = '';
+      });
+    }
   </script>
 </body>
 </html>
