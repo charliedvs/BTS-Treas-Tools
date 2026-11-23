@@ -339,47 +339,242 @@ function extractSpreadsheetId(input) {
   return idMatch ? idMatch[0] : '';
 }
 
-function findOverviewColumnIndices(values) {
-  var scanLimit = Math.min(values.length, 10);
+function normalizeHeaderText(val) {
+  if (val === null || val === undefined) return '';
+  return String(val)
+    .replace(/[\r\n\t\u00a0]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function stripHeaderDecorations(norm) {
+  return String(norm || '')
+    .replace(/\s*\([\s\S]*?\)\s*/g, ' ')
+    .replace(/[£$€:*#\-–—]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function classifyHeaderCell(val) {
+  var raw = normalizeHeaderText(val);
+  if (!raw) return { event: 0, client: 0, total: 0 };
+  var clean = stripHeaderDecorations(raw);
+
+  var eventScore = 0;
+  if (raw === 'event name') eventScore = 4;
+  else if (clean === 'event name') eventScore = 3;
+  else if (
+    clean === 'event' ||
+    clean === 'event title' ||
+    clean === 'name of event' ||
+    clean === 'event / show' ||
+    clean === 'show name' ||
+    clean === 'production name' ||
+    clean === 'booking name' ||
+    clean === 'event description'
+  ) {
+    eventScore = 2;
+  }
+
+  var clientScore = 0;
+  if (raw === 'client') clientScore = 4;
+  else if (clean === 'client' || clean === 'client name') clientScore = 3;
+  else if (
+    clean === 'client / society' ||
+    clean === 'society / client' ||
+    clean === 'client / soc' ||
+    clean === 'client / dept' ||
+    clean === 'society' ||
+    clean === 'club / society' ||
+    clean === 'customer' ||
+    clean === 'organisation' ||
+    clean === 'organization'
+  ) {
+    clientScore = 2;
+  }
+
+  var totalScore = 0;
+  if (raw === 'total') totalScore = 4;
+  else if (clean === 'total') totalScore = 3;
+  else if (!/sub[\s\-]?total/.test(raw)) {
+    if (
+      clean === 'total cost' ||
+      clean === 'total charge' ||
+      clean === 'total price' ||
+      clean === 'total amount' ||
+      clean === 'event total' ||
+      clean === 'invoice total' ||
+      clean === 'grand total' ||
+      clean === 'total due' ||
+      clean === 'net total' ||
+      clean === 'gross total' ||
+      clean === 'total ex vat' ||
+      clean === 'total exc vat' ||
+      clean === 'total inc vat' ||
+      clean === 'total cost to client'
+    ) {
+      totalScore = 2;
+    }
+  }
+
+  return { event: eventScore, client: clientScore, total: totalScore };
+}
+
+function pickBestColumnsFromScores(colScores) {
+  // Choose best distinct columns for event, client, total from per-column score objects
+  var best = null;
+  for (var e = 0; e < colScores.length; e++) {
+    if (colScores[e].event <= 0) continue;
+    for (var cl = 0; cl < colScores.length; cl++) {
+      if (cl === e || colScores[cl].client <= 0) continue;
+      for (var t = 0; t < colScores.length; t++) {
+        if (t === e || t === cl || colScores[t].total <= 0) continue;
+        var sum = colScores[e].event + colScores[cl].client + colScores[t].total;
+        if (!best || sum > best.scoreSum) {
+          best = {
+            eventCol: e,
+            clientCol: cl,
+            totalCol: t,
+            scoreSum: sum
+          };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function buildOverviewHeaderDiagnostics(values) {
+  var scanLimit = Math.min(values.length, 25);
+  var bestPartial = null;
+  var bestPartialCount = 0;
+  var previewRows = [];
+
   for (var r = 0; r < scanLimit; r++) {
     var row = values[r] || [];
-    var eventCol = -1;
-    var clientCol = -1;
-    var totalCol = -1;
+    var nonEmpty = [];
+    var eCol = -1;
+    var cCol = -1;
+    var tCol = -1;
 
-    // Pass 1: exact trimmed lowercase header names
     for (var c = 0; c < row.length; c++) {
-      var rawHeader = String(row[c] === null || row[c] === undefined ? '' : row[c]).trim().toLowerCase();
-      if (!rawHeader) continue;
-      if (eventCol === -1 && rawHeader === 'event name') eventCol = c;
-      if (clientCol === -1 && rawHeader === 'client') clientCol = c;
-      if (totalCol === -1 && rawHeader === 'total') totalCol = c;
-    }
-
-    // Pass 2: allow minor parenthetical/colon variations like "Total (£)" if exact match absent
-    for (var c2 = 0; c2 < row.length; c2++) {
-      var cleanHeader = String(row[c2] === null || row[c2] === undefined ? '' : row[c2])
-        .trim()
-        .toLowerCase()
-        .replace(/\s*\(.*?\)\s*/g, '')
-        .replace(/[:]/g, '')
+      var text = String(row[c] === null || row[c] === undefined ? '' : row[c])
+        .replace(/[\r\n\t\u00a0]+/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
-      if (!cleanHeader) continue;
-      if (eventCol === -1 && cleanHeader === 'event name') eventCol = c2;
-      if (clientCol === -1 && (cleanHeader === 'client' || cleanHeader === 'client name')) clientCol = c2;
-      if (totalCol === -1 && cleanHeader === 'total') totalCol = c2;
+      if (text && nonEmpty.length < 15) nonEmpty.push(text);
+      var scores = classifyHeaderCell(row[c]);
+      if (scores.event > 0 && eCol === -1) eCol = c;
+      if (scores.client > 0 && cCol === -1) cCol = c;
+      if (scores.total > 0 && tCol === -1) tCol = c;
     }
 
-    if (eventCol !== -1 && clientCol !== -1 && totalCol !== -1) {
-      return {
-        headerRowIndex: r,
-        eventCol: eventCol,
-        clientCol: clientCol,
-        totalCol: totalCol
+    if (nonEmpty.length > 0 && previewRows.length < 6) {
+      previewRows.push({
+        rowNumber: r + 1,
+        cells: nonEmpty
+      });
+    }
+
+    var count = (eCol !== -1 ? 1 : 0) + (cCol !== -1 ? 1 : 0) + (tCol !== -1 ? 1 : 0);
+    if (count > bestPartialCount) {
+      bestPartialCount = count;
+      bestPartial = {
+        rowNumber: r + 1,
+        found: {
+          client: cCol !== -1,
+          eventName: eCol !== -1,
+          total: tCol !== -1
+        },
+        cells: nonEmpty
       };
     }
   }
-  return null;
+
+  return {
+    bestPartial: bestPartial,
+    previewRows: previewRows
+  };
+}
+
+function findOverviewColumnIndices(values) {
+  var scanLimit = Math.min(values.length, 60);
+
+  // Pass 1: single-row header detection (highest score sum wins; earliest row breaks ties)
+  var bestSingle = null;
+  for (var r = 0; r < scanLimit; r++) {
+    var row = values[r] || [];
+    var scores = [];
+    for (var c = 0; c < row.length; c++) {
+      scores.push(classifyHeaderCell(row[c]));
+    }
+    var match = pickBestColumnsFromScores(scores);
+    if (match && (!bestSingle || match.scoreSum > bestSingle.scoreSum)) {
+      bestSingle = {
+        headerRowIndex: r,
+        eventCol: match.eventCol,
+        clientCol: match.clientCol,
+        totalCol: match.totalCol,
+        scoreSum: match.scoreSum
+      };
+    }
+  }
+  if (bestSingle) return bestSingle;
+
+  // Pass 2: vertically merged / 2-row stacked header block (top row + immediate sub-header row)
+  var bestMerged = null;
+  for (var r2 = 0; r2 < scanLimit - 1; r2++) {
+    var topRow = values[r2] || [];
+    var subRow = values[r2 + 1] || [];
+    var maxCols = Math.max(topRow.length, subRow.length);
+    var combined = [];
+    var fromTopCols = {};
+    var fromSubCols = {};
+
+    for (var c2 = 0; c2 < maxCols; c2++) {
+      var topScore = classifyHeaderCell(topRow[c2]);
+      var subScore = classifyHeaderCell(subRow[c2]);
+      var subBlank = !normalizeHeaderText(subRow[c2]);
+
+      // Allow top-row header when the sub-header cell below it is blank (vertically merged header)
+      // or when sub-row itself provides the header label
+      var eScore = Math.max(subBlank ? topScore.event : 0, subScore.event);
+      var clScore = Math.max(subBlank ? topScore.client : 0, subScore.client);
+      var tScore = Math.max(subBlank ? topScore.total : 0, subScore.total);
+
+      if (subBlank && (topScore.event > 0 || topScore.client > 0 || topScore.total > 0)) {
+        fromTopCols[c2] = true;
+      }
+      if (subScore.event > 0 || subScore.client > 0 || subScore.total > 0) {
+        fromSubCols[c2] = true;
+      }
+
+      combined.push({ event: eScore, client: clScore, total: tScore });
+    }
+
+    var mergedMatch = pickBestColumnsFromScores(combined);
+    if (mergedMatch) {
+      var colsUsed = [mergedMatch.eventCol, mergedMatch.clientCol, mergedMatch.totalCol];
+      var usedTop = false;
+      var usedSub = false;
+      for (var cu = 0; cu < colsUsed.length; cu++) {
+        if (fromTopCols[colsUsed[cu]]) usedTop = true;
+        if (fromSubCols[colsUsed[cu]]) usedSub = true;
+      }
+      if (usedTop && usedSub && (!bestMerged || mergedMatch.scoreSum > bestMerged.scoreSum)) {
+        bestMerged = {
+          headerRowIndex: r2 + 1,
+          eventCol: mergedMatch.eventCol,
+          clientCol: mergedMatch.clientCol,
+          totalCol: mergedMatch.totalCol,
+          scoreSum: mergedMatch.scoreSum
+        };
+      }
+    }
+  }
+
+  return bestMerged;
 }
 
 function handleSyncOverviewSheet(payload) {
@@ -427,6 +622,7 @@ function handleSyncOverviewSheet(payload) {
     return {
       success: true,
       scriptVersion: APP_SCRIPT_VERSION,
+      sheetTitle: ss.getName(),
       tabName: overviewSheet.getName(),
       rows: []
     };
@@ -434,10 +630,28 @@ function handleSyncOverviewSheet(payload) {
 
   var cols = findOverviewColumnIndices(values);
   if (!cols) {
+    var diag = buildOverviewHeaderDiagnostics(values);
+    var detailParts = [];
+    if (diag.bestPartial) {
+      var missing = [];
+      if (!diag.bestPartial.found.client) missing.push('"Client"');
+      if (!diag.bestPartial.found.eventName) missing.push('"Event Name"');
+      if (!diag.bestPartial.found.total) missing.push('"Total"');
+      if (missing.length > 0 && missing.length < 3) {
+        detailParts.push('Missing ' + missing.join(' & ') + ' near row ' + diag.bestPartial.rowNumber);
+      }
+      if (diag.bestPartial.cells.length > 0) {
+        detailParts.push('Row ' + diag.bestPartial.rowNumber + ' headers seen: [' + diag.bestPartial.cells.slice(0, 8).join(' | ') + ']');
+      }
+    } else if (diag.previewRows.length > 0) {
+      var firstRow = diag.previewRows[0];
+      detailParts.push('Row ' + firstRow.rowNumber + ' cells seen: [' + firstRow.cells.slice(0, 8).join(' | ') + ']');
+    }
     return {
       success: false,
       scriptVersion: APP_SCRIPT_VERSION,
-      error: 'Could not locate "Client", "Event Name", and "Total" columns in the "Overview" sheet.'
+      debugHeaders: diag,
+      error: 'Could not locate "Client", "Event Name", and "Total" columns in "' + overviewSheet.getName() + '".' + (detailParts.length > 0 ? ' ' + detailParts.join(' — ') : '')
     };
   }
 

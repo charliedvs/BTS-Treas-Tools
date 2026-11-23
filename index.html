@@ -6087,6 +6087,9 @@
 
         const result = await callAppsScriptBackend('syncOverviewSheet', { spreadsheetId }, auth);
         if (!result || !result.success) {
+          if (result && result.debugHeaders) {
+            console.error('Overview header diagnostics:', result.debugHeaders);
+          }
           if (Number(result?.scriptVersion || 0) > 0 && Number(result.scriptVersion) < 3) {
             throw new Error('Apps Script backend is still v' + result.scriptVersion + '. Deploy google-apps-script.js (v3) as a New version to enable Spreadsheet Sync.');
           }
@@ -6099,6 +6102,7 @@
           skippedInvoiceSent: 0,
           updated: 0,
           updatedNames: [],
+          changes: [],
           ignoredSuBars: 0,
           alreadyMatching: 0,
           unmatched: 0,
@@ -6144,6 +6148,11 @@
           ev.charge = sheetTotal.toFixed(2);
           summary.updated++;
           summary.updatedNames.push(ev.name);
+          summary.changes.push({
+            name: ev.name,
+            oldCharge: currentCharge,
+            newCharge: sheetTotal
+          });
         }
 
         if (summary.updated > 0) {
@@ -6160,9 +6169,15 @@
 
         if (summary.updated > 0) {
           const plural = summary.updated === 1 ? 'event' : 'events';
-          const preview = summary.updatedNames.slice(0, 3).join(', ') + (summary.updatedNames.length > 3 ? '...' : '');
-          const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
-          showToast(`Updated charge on ${summary.updated} ${plural}: ${preview}${suffix}.`, 6000);
+          const formattedChanges = summary.changes.slice(0, 3).map(ch => {
+            const fromStr = ch.oldCharge !== null ? `£${ch.oldCharge.toFixed(2)}` : 'unset';
+            const toStr = `£${ch.newCharge.toFixed(2)}`;
+            return `${ch.name} (${fromStr} → ${toStr})`;
+          });
+          const extraCount = summary.changes.length - formattedChanges.length;
+          const preview = formattedChanges.join(', ') + (extraCount > 0 ? ` + ${extraCount} more` : '');
+          const suffix = details.length > 0 ? ` — ${details.join(', ')}` : '';
+          showToast(`✓ Synced charge on ${summary.updated} ${plural}: ${preview}${suffix}`, 7500);
         } else {
           const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
           showToast(`Sync complete: no event charges needed updating${suffix}.`, 5000);
@@ -6171,7 +6186,7 @@
         return summary;
       } catch (err) {
         console.error('Spreadsheet sync failed:', err);
-        showToast(`Spreadsheet sync failed: ${err.message}`, 6000);
+        showToast(`Spreadsheet sync failed: ${err.message}`, 8000);
         return null;
       } finally {
         isSyncingSpreadsheet = false;
