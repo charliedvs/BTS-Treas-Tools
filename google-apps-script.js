@@ -1,5 +1,5 @@
 /**
- * BTS Treas Tools — Google Drive & Gmail Automation Script (v2)
+ * BTS Treas Tools — Google Drive, Gmail & Sheets Automation Script (v3)
  *
  * SETUP INSTRUCTIONS:
  * 1. Go to https://script.google.com and open your project.
@@ -8,14 +8,14 @@
  *    In the left sidebar, click "+" next to "Services", select "Gmail API", and click "Add".
  * 4. At the top toolbar, select "doGet" in the function dropdown and click "Run" once
  *    to approve the Google permissions prompt ("Review permissions" -> "Advanced" -> "Allow").
- *    (This approves Drive, Gmail, and External Token Verification scopes.)
+ *    (This approves Drive, Gmail, Google Sheets, and External Token Verification scopes.)
  * 5. Click "Deploy" (top right) -> "Manage deployments" -> Edit -> Version: "New version" -> "Deploy".
  *    - Type: "Web app"
  *    - Execute as: "Me"
  *    - Who has access: "Anyone" (Requests still require a verified treas@bts-crew.com Google OAuth token)
  */
 
-var APP_SCRIPT_VERSION = 2;
+var APP_SCRIPT_VERSION = 3;
 var AUTHORIZED_EMAIL = 'treas@bts-crew.com';
 var DEFAULT_ALLOWED_CLIENT_IDS = [
   '523917169511-qp7hvnb54uhho8huevg0r6e76bil27ub.apps.googleusercontent.com'
@@ -23,9 +23,12 @@ var DEFAULT_ALLOWED_CLIENT_IDS = [
 
 function doGet(e) {
   try {
-    // Touch Drive, Gmail, and UrlFetch scopes so running doGet once approves all permissions
+    // Touch Drive, Gmail, Sheets, and UrlFetch scopes so running doGet once approves all permissions
     DriveApp.getRootFolder().getName();
     GmailApp.getInboxThreads(0, 1);
+    try {
+      SpreadsheetApp.getActiveSpreadsheet();
+    } catch (ssErr) {}
     UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo', { muteHttpExceptions: true });
 
     var hasAdvancedGmail = (typeof Gmail !== 'undefined' && Boolean(Gmail.Users));
@@ -34,6 +37,7 @@ function doGet(e) {
       '',
       '• Google Drive scope: Connected',
       '• Gmail scope: Connected',
+      '• Google Sheets scope: Connected',
       '• Token verification scope (UrlFetchApp): Connected',
       '• Advanced Gmail API service enabled: ' + (hasAdvancedGmail ? 'Yes' : 'No (optional — enable "Gmail API" under Services +)')
     ].join('\n');
@@ -75,6 +79,9 @@ function doPost(e) {
         email: auth.email,
         hasAdvancedGmail: (typeof Gmail !== 'undefined' && Boolean(Gmail.Users))
       });
+    }
+    if (action === 'syncOverviewSheet') {
+      return jsonResponse(handleSyncOverviewSheet(payload));
     }
 
     return jsonResponse(handleSaveDocument(payload));
@@ -320,6 +327,142 @@ function handleSaveDocument(payload) {
     fileReplaced: fileExisted,
     draftCreated: draftCreated,
     draftReplaced: draftExisted
+  };
+}
+
+function extractSpreadsheetId(input) {
+  var str = String(input || '').trim();
+  if (!str) return '';
+  var sheetMatch = str.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (sheetMatch) return sheetMatch[1];
+  var idMatch = str.match(/^[a-zA-Z0-9_-]{20,}$/);
+  return idMatch ? idMatch[0] : '';
+}
+
+function findOverviewColumnIndices(values) {
+  var scanLimit = Math.min(values.length, 10);
+  for (var r = 0; r < scanLimit; r++) {
+    var row = values[r] || [];
+    var eventCol = -1;
+    var clientCol = -1;
+    var totalCol = -1;
+
+    // Pass 1: exact trimmed lowercase header names
+    for (var c = 0; c < row.length; c++) {
+      var rawHeader = String(row[c] === null || row[c] === undefined ? '' : row[c]).trim().toLowerCase();
+      if (!rawHeader) continue;
+      if (eventCol === -1 && rawHeader === 'event name') eventCol = c;
+      if (clientCol === -1 && rawHeader === 'client') clientCol = c;
+      if (totalCol === -1 && rawHeader === 'total') totalCol = c;
+    }
+
+    // Pass 2: allow minor parenthetical/colon variations like "Total (£)" if exact match absent
+    for (var c2 = 0; c2 < row.length; c2++) {
+      var cleanHeader = String(row[c2] === null || row[c2] === undefined ? '' : row[c2])
+        .trim()
+        .toLowerCase()
+        .replace(/\s*\(.*?\)\s*/g, '')
+        .replace(/[:]/g, '')
+        .trim();
+      if (!cleanHeader) continue;
+      if (eventCol === -1 && cleanHeader === 'event name') eventCol = c2;
+      if (clientCol === -1 && (cleanHeader === 'client' || cleanHeader === 'client name')) clientCol = c2;
+      if (totalCol === -1 && cleanHeader === 'total') totalCol = c2;
+    }
+
+    if (eventCol !== -1 && clientCol !== -1 && totalCol !== -1) {
+      return {
+        headerRowIndex: r,
+        eventCol: eventCol,
+        clientCol: clientCol,
+        totalCol: totalCol
+      };
+    }
+  }
+  return null;
+}
+
+function handleSyncOverviewSheet(payload) {
+  var sheetId = extractSpreadsheetId(payload && payload.spreadsheetId ? payload.spreadsheetId : '');
+  if (!sheetId) {
+    return {
+      success: false,
+      scriptVersion: APP_SCRIPT_VERSION,
+      error: 'Invalid or missing Google Spreadsheet link/ID. Add your spreadsheet URL in Settings.'
+    };
+  }
+
+  var ss;
+  try {
+    ss = SpreadsheetApp.openById(sheetId);
+  } catch (openErr) {
+    return {
+      success: false,
+      scriptVersion: APP_SCRIPT_VERSION,
+      error: 'Could not open spreadsheet. Check the URL/ID and ensure treas@bts-crew.com has view access.'
+    };
+  }
+
+  var overviewSheet = ss.getSheetByName('Overview');
+  if (!overviewSheet) {
+    var allSheets = ss.getSheets();
+    for (var s = 0; s < allSheets.length; s++) {
+      if (String(allSheets[s].getName() || '').trim().toLowerCase() === 'overview') {
+        overviewSheet = allSheets[s];
+        break;
+      }
+    }
+  }
+
+  if (!overviewSheet) {
+    return {
+      success: false,
+      scriptVersion: APP_SCRIPT_VERSION,
+      error: 'Could not find a sheet tab named "Overview" in this spreadsheet.'
+    };
+  }
+
+  var values = overviewSheet.getDataRange().getValues();
+  if (!values || values.length === 0) {
+    return {
+      success: true,
+      scriptVersion: APP_SCRIPT_VERSION,
+      tabName: overviewSheet.getName(),
+      rows: []
+    };
+  }
+
+  var cols = findOverviewColumnIndices(values);
+  if (!cols) {
+    return {
+      success: false,
+      scriptVersion: APP_SCRIPT_VERSION,
+      error: 'Could not locate "Client", "Event Name", and "Total" columns in the "Overview" sheet.'
+    };
+  }
+
+  var rows = [];
+  for (var r = cols.headerRowIndex + 1; r < values.length; r++) {
+    var row = values[r];
+    var eventName = String(row[cols.eventCol] === null || row[cols.eventCol] === undefined ? '' : row[cols.eventCol]).trim();
+    if (!eventName) continue;
+
+    var client = String(row[cols.clientCol] === null || row[cols.clientCol] === undefined ? '' : row[cols.clientCol]).trim();
+    var rawTotal = row[cols.totalCol];
+    rows.push({
+      rowNumber: r + 1,
+      eventName: eventName,
+      client: client,
+      total: (rawTotal === null || rawTotal === undefined) ? '' : rawTotal
+    });
+  }
+
+  return {
+    success: true,
+    scriptVersion: APP_SCRIPT_VERSION,
+    sheetTitle: ss.getName(),
+    tabName: overviewSheet.getName(),
+    rows: rows
   };
 }
 

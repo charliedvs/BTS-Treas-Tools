@@ -1519,6 +1519,14 @@
             <span id="userPillEmail">treas@bts-crew.com</span>
             <button type="button" id="signOutBtn" class="btn-logout" title="Sign out of BTS Treas Tools">Sign Out</button>
           </div>
+          <button type="button" id="syncSpreadsheetBtn" class="btn-secondary btn-header" title="Sync unsent event charges from the Overview Google Sheet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span id="syncSpreadsheetBtnText">Sync</span>
+          </button>
           <button type="button" id="openModalBtn" class="btn-primary btn-add-event">
             <span>+ Add Event</span>
           </button>
@@ -1794,8 +1802,14 @@
               <div class="field-hint">Event folders will be created inside this Drive folder with BF_{Event Name}.pdf saved inside.</div>
             </div>
 
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="eventsSpreadsheetInput" style="font-size: 0.8rem; color: var(--text-muted);">Overview Google Spreadsheet Link or ID (For Sync)</label>
+              <input type="text" id="eventsSpreadsheetInput" placeholder="https://docs.google.com/spreadsheets/d/.../edit or Spreadsheet ID">
+              <div class="field-hint">Reads Client, Event Name &amp; Total from the &ldquo;Overview&rdquo; tab to update unsent event charges (excluding SU Bars).</div>
+            </div>
+
             <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 4px;">
-              <button type="submit" class="btn-primary btn-sm">Save Drive Folder</button>
+              <button type="submit" class="btn-primary btn-sm">Save Google Settings</button>
             </div>
           </form>
         </div>
@@ -3590,6 +3604,8 @@
     // Permanent built-in Apps Script Web App URL:
     const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIP1hgWzv9Akt8jPdFe9aT3tFHi4t6ryX4H-kDHdnnqlO7S7VVMuHZKUX9CB4aBJ8q/exec';
     const DEFAULT_PARENT_DRIVE_FOLDER = '';
+    const DEFAULT_EVENTS_SPREADSHEET = '';
+    const EVENTS_SPREADSHEET_STORAGE_KEY = 'treastrack_events_spreadsheet';
 
     function getEffectiveAppsScriptUrl() {
       return DEFAULT_APPS_SCRIPT_URL.trim();
@@ -3599,6 +3615,23 @@
       const stored = (localStorage.getItem('treastrack_parent_drive_folder') || '').trim();
       if (stored) return stored;
       return DEFAULT_PARENT_DRIVE_FOLDER.trim();
+    }
+
+    /** Return saved Overview Google Spreadsheet URL or ID. */
+    function getEffectiveEventsSpreadsheet() {
+      const stored = (localStorage.getItem(EVENTS_SPREADSHEET_STORAGE_KEY) || '').trim();
+      if (stored) return stored;
+      return DEFAULT_EVENTS_SPREADSHEET.trim();
+    }
+
+    /** Extract Google Spreadsheet ID from a docs.google.com URL or raw ID string. */
+    function extractSpreadsheetId(input) {
+      const str = String(input || '').trim();
+      if (!str) return '';
+      const urlMatch = str.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (urlMatch) return urlMatch[1];
+      const rawMatch = str.match(/^[a-zA-Z0-9_-]{20,}$/);
+      return rawMatch ? rawMatch[0] : '';
     }
 
     const templateFileInput = document.getElementById('templateFileInput');
@@ -3715,11 +3748,15 @@
 
     const googleSetupForm = document.getElementById('googleSetupForm');
     const parentDriveFolderInput = document.getElementById('parentDriveFolderInput');
+    const eventsSpreadsheetInput = document.getElementById('eventsSpreadsheetInput');
     const testAppsScriptBtn = document.getElementById('testAppsScriptBtn');
     const googleTestStatus = document.getElementById('googleTestStatus');
 
     function openSettingsModal() {
       parentDriveFolderInput.value = localStorage.getItem('treastrack_parent_drive_folder') || DEFAULT_PARENT_DRIVE_FOLDER;
+      if (eventsSpreadsheetInput) {
+        eventsSpreadsheetInput.value = localStorage.getItem(EVENTS_SPREADSHEET_STORAGE_KEY) || DEFAULT_EVENTS_SPREADSHEET;
+      }
       googleTestStatus.textContent = '';
       if (templatePdfName) {
         templateStatusText.textContent = `✓ Template loaded: ${templatePdfName}`;
@@ -3804,13 +3841,17 @@
         return;
       }
       const res = await callAppsScriptBackend('status', {}, auth);
-      if (res && res.success && res.scriptVersion >= 2) {
+      if (res && res.success && res.scriptVersion >= 3) {
         const gmailNote = res.hasAdvancedGmail ? 'Advanced Gmail API: Enabled' : 'GmailApp fallback active';
         googleTestStatus.textContent =
-          `✓ Connected to Apps Script v${res.scriptVersion} as ${res.email || AUTHORIZED_EMAIL} (${gmailNote}).`;
+          `✓ Connected to Apps Script v${res.scriptVersion} as ${res.email || AUTHORIZED_EMAIL} (Drive, Gmail & Sheets Sync ready; ${gmailNote}).`;
+      } else if (res && res.success && res.scriptVersion === 2) {
+        const gmailNote = res.hasAdvancedGmail ? 'Advanced Gmail API: Enabled' : 'GmailApp fallback active';
+        googleTestStatus.textContent =
+          `✓ Connected to Apps Script v2 (${gmailNote}).\n⚠ Redeploy google-apps-script.js (v3) in script.google.com to enable Overview Spreadsheet Sync.`;
       } else if (res && /Missing PDF data/i.test(res.error || '')) {
         googleTestStatus.textContent =
-          '⚠ Apps Script is reachable, but still running old v1 code.\nCopy google-apps-script.js into script.google.com and deploy a New version to enable security verification.';
+          '⚠ Apps Script is reachable, but still running old v1 code.\nCopy google-apps-script.js (v3) into script.google.com and deploy a New version to enable security & Spreadsheet Sync.';
       } else {
         googleTestStatus.textContent = '✗ ' + (res && res.error ? res.error : 'Could not verify Google Apps Script connection.');
       }
@@ -3825,7 +3866,21 @@
         } else {
           localStorage.removeItem('treastrack_parent_drive_folder');
         }
-        showToast('Google Drive folder setting saved.');
+
+        if (eventsSpreadsheetInput) {
+          const sheetVal = eventsSpreadsheetInput.value.trim();
+          if (sheetVal && !extractSpreadsheetId(sheetVal)) {
+            showToast('Invalid Google Spreadsheet URL or ID.', 5000);
+            eventsSpreadsheetInput.focus();
+            return;
+          }
+          if (sheetVal && sheetVal !== DEFAULT_EVENTS_SPREADSHEET) {
+            localStorage.setItem(EVENTS_SPREADSHEET_STORAGE_KEY, sheetVal);
+          } else {
+            localStorage.removeItem(EVENTS_SPREADSHEET_STORAGE_KEY);
+          }
+        }
+        showToast('Google settings saved.');
       } catch (err) {
         showToast('Failed to save settings.');
       }
@@ -5441,6 +5496,7 @@
         externalClients: getStoredExternalClients(),
         settings: {
           parentDriveFolder: localStorage.getItem('treastrack_parent_drive_folder') || '',
+          eventsSpreadsheet: localStorage.getItem(EVENTS_SPREADSHEET_STORAGE_KEY) || '',
           fieldMapping: customFieldMapping || {}
         }
       };
@@ -5500,6 +5556,13 @@
               localStorage.setItem('treastrack_parent_drive_folder', parsed.settings.parentDriveFolder.trim());
             } else {
               localStorage.removeItem('treastrack_parent_drive_folder');
+            }
+          }
+          if (typeof parsed.settings.eventsSpreadsheet === 'string') {
+            if (parsed.settings.eventsSpreadsheet.trim()) {
+              localStorage.setItem(EVENTS_SPREADSHEET_STORAGE_KEY, parsed.settings.eventsSpreadsheet.trim());
+            } else {
+              localStorage.removeItem(EVENTS_SPREADSHEET_STORAGE_KEY);
             }
           }
           if (parsed.settings.fieldMapping && typeof parsed.settings.fieldMapping === 'object') {
@@ -5840,6 +5903,288 @@
     }
 
     updateDirectorySummary();
+
+    // =========================================================================
+    // SPREADSHEET SYNC ("Overview" tab: Event Name, Client, Total)
+    // =========================================================================
+    const syncSpreadsheetBtn = document.getElementById('syncSpreadsheetBtn');
+    const syncSpreadsheetBtnText = document.getElementById('syncSpreadsheetBtnText');
+    let isSyncingSpreadsheet = false;
+
+    function normalizeOverviewEventName(str) {
+      return String(str || '')
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/\bxmas\b/g, 'christmas')
+        .replace(/['’\u2018\u2019]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    }
+
+    function parseSheetCurrencyTotal(rawVal) {
+      if (typeof rawVal === 'number') {
+        return Number.isFinite(rawVal) && rawVal >= 0
+          ? Math.round(rawVal * 100) / 100
+          : null;
+      }
+      if (rawVal === null || rawVal === undefined) return null;
+      const str = String(rawVal).trim();
+      if (!str) return null;
+
+      const cleaned = str
+        .replace(/^(?:gbp\b|£|\$|€)+\s*/i, '')
+        .replace(/,/g, '')
+        .trim();
+      if (!/^\d+(?:\.\d+)?$/.test(cleaned)) return null;
+
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) && parsed >= 0
+        ? Math.round(parsed * 100) / 100
+        : null;
+    }
+
+    function isOrderedTokenSubset(shorterWords, longerWords) {
+      let idx = 0;
+      for (const word of longerWords) {
+        if (word === shorterWords[idx]) {
+          idx++;
+          if (idx === shorterWords.length) return true;
+        }
+      }
+      return false;
+    }
+
+    function extractNumericTokens(str) {
+      return String(str || '').match(/\d+/g) || [];
+    }
+
+    function findMatchingOverviewRow(eventName, sheetRows) {
+      const targetRaw = String(eventName || '').trim().toLowerCase();
+      if (!targetRaw || !Array.isArray(sheetRows) || sheetRows.length === 0) return null;
+
+      const candidates = sheetRows.filter(row => row && String(row.eventName || '').trim());
+
+      // Pass 1: exact trimmed case-insensitive match
+      for (const row of candidates) {
+        if (String(row.eventName).trim().toLowerCase() === targetRaw) {
+          return { row, matchType: 'exact' };
+        }
+      }
+
+      // Pass 2: normalized exact match (& -> and, xmas -> christmas, punctuation stripped)
+      const targetNorm = normalizeOverviewEventName(eventName);
+      if (!targetNorm) return null;
+
+      for (const row of candidates) {
+        if (normalizeOverviewEventName(row.eventName) === targetNorm) {
+          return { row, matchType: 'normalized' };
+        }
+      }
+
+      // Pass 3: close match (bounded Levenshtein typos/plurals or multi-word containment)
+      const targetWords = targetNorm.split(' ').filter(Boolean);
+      const targetNums = extractNumericTokens(targetNorm);
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const row of candidates) {
+        const candNorm = normalizeOverviewEventName(row.eventName);
+        if (!candNorm) continue;
+
+        const candWords = candNorm.split(' ').filter(Boolean);
+        const candNums = extractNumericTokens(candNorm);
+
+        // Guard against matching distinct numbered editions (e.g. "Quiz 1" vs "Quiz 2")
+        if (targetNums.length > 0 && candNums.length > 0 && targetNums.join(',') !== candNums.join(',')) {
+          continue;
+        }
+
+        // Guard against single-character suffix codes differing (e.g. "Show A" vs "Show B")
+        const targetLast = targetWords[targetWords.length - 1];
+        const candLast = candWords[candWords.length - 1];
+        if (
+          targetWords.length === candWords.length &&
+          targetLast.length === 1 &&
+          candLast.length === 1 &&
+          targetLast !== candLast &&
+          targetWords.slice(0, -1).join(' ') === candWords.slice(0, -1).join(' ')
+        ) {
+          continue;
+        }
+
+        const maxLen = Math.max(targetNorm.length, candNorm.length);
+        const dist = editDistance(targetNorm, candNorm);
+        const maxAllowedDist = maxLen >= 5 ? Math.min(4, Math.max(1, Math.floor(maxLen * 0.2))) : 0;
+        const editScore = maxAllowedDist > 0 && dist <= maxAllowedDist ? 1 - dist / maxLen : 0;
+
+        let containmentScore = 0;
+        const shorterWords = targetWords.length <= candWords.length ? targetWords : candWords;
+        const longerWords = targetWords.length <= candWords.length ? candWords : targetWords;
+        const shorterNorm = targetWords.length <= candWords.length ? targetNorm : candNorm;
+        if (
+          shorterWords.length >= 2 &&
+          shorterNorm.length >= 8 &&
+          shorterWords.length / longerWords.length >= 0.5 &&
+          isOrderedTokenSubset(shorterWords, longerWords)
+        ) {
+          containmentScore = 0.78 + 0.15 * (shorterWords.length / longerWords.length);
+        }
+
+        const score = Math.max(editScore, containmentScore);
+        if (score >= 0.78 && score > bestScore) {
+          bestScore = score;
+          bestMatch = row;
+        }
+      }
+
+      return bestMatch ? { row: bestMatch, matchType: 'fuzzy', score: bestScore } : null;
+    }
+
+    async function syncEventsFromSpreadsheet() {
+      if (isSyncingSpreadsheet) return null;
+
+      const sheetSetting = getEffectiveEventsSpreadsheet();
+      const spreadsheetId = extractSpreadsheetId(sheetSetting);
+      if (!spreadsheetId) {
+        showToast('Add your Overview Google Spreadsheet link in Settings first.', 4500);
+        if (typeof openSettingsModal === 'function') {
+          openSettingsModal();
+          setTimeout(() => eventsSpreadsheetInput?.focus(), 100);
+        }
+        return null;
+      }
+
+      if (events.length === 0) {
+        showToast('No events on your website yet to sync.', 3500);
+        return null;
+      }
+
+      const unsentEvents = events.filter(ev => !ev.invoiceSent);
+      if (unsentEvents.length === 0) {
+        showToast('All events already have "Invoice Sent" ticked — nothing to sync.', 3500);
+        return {
+          totalEvents: events.length,
+          skippedInvoiceSent: events.length,
+          updated: 0,
+          ignoredSuBars: 0,
+          alreadyMatching: 0,
+          unmatched: 0,
+          invalidTotal: 0
+        };
+      }
+
+      isSyncingSpreadsheet = true;
+      if (syncSpreadsheetBtn) syncSpreadsheetBtn.disabled = true;
+      if (syncSpreadsheetBtnText) syncSpreadsheetBtnText.textContent = 'Syncing...';
+
+      try {
+        const auth = await ensureBackendAuthToken();
+        if (!auth) {
+          showToast('Google sign-in is required to read the spreadsheet.', 4500);
+          return null;
+        }
+
+        const result = await callAppsScriptBackend('syncOverviewSheet', { spreadsheetId }, auth);
+        if (!result || !result.success) {
+          if (Number(result?.scriptVersion || 0) > 0 && Number(result.scriptVersion) < 3) {
+            throw new Error('Apps Script backend is still v' + result.scriptVersion + '. Deploy google-apps-script.js (v3) as a New version to enable Spreadsheet Sync.');
+          }
+          throw new Error(result?.error || 'Could not read Overview sheet from the linked spreadsheet.');
+        }
+
+        const sheetRows = Array.isArray(result.rows) ? result.rows : [];
+        const summary = {
+          totalEvents: events.length,
+          skippedInvoiceSent: 0,
+          updated: 0,
+          updatedNames: [],
+          ignoredSuBars: 0,
+          alreadyMatching: 0,
+          unmatched: 0,
+          invalidTotal: 0
+        };
+
+        for (const ev of events) {
+          if (ev.invoiceSent) {
+            summary.skippedInvoiceSent++;
+            continue;
+          }
+
+          const match = findMatchingOverviewRow(ev.name, sheetRows);
+          if (!match) {
+            summary.unmatched++;
+            continue;
+          }
+
+          const clientVal = String(match.row.client || '').trim().toLowerCase();
+          if (clientVal === 'su bars') {
+            summary.ignoredSuBars++;
+            continue;
+          }
+
+          const sheetTotal = parseSheetCurrencyTotal(match.row.total);
+          if (sheetTotal === null) {
+            summary.invalidTotal++;
+            continue;
+          }
+
+          const hasNumericCharge =
+            ev.charge !== '' &&
+            ev.charge !== null &&
+            ev.charge !== undefined &&
+            Number.isFinite(Number(ev.charge));
+          const currentCharge = hasNumericCharge ? Math.round(Number(ev.charge) * 100) / 100 : null;
+
+          if (currentCharge !== null && Math.abs(sheetTotal - currentCharge) < 0.005) {
+            summary.alreadyMatching++;
+            continue;
+          }
+
+          ev.charge = sheetTotal.toFixed(2);
+          summary.updated++;
+          summary.updatedNames.push(ev.name);
+        }
+
+        if (summary.updated > 0) {
+          saveEvents();
+          renderEvents();
+        }
+
+        const details = [];
+        if (summary.alreadyMatching > 0) details.push(`${summary.alreadyMatching} unchanged`);
+        if (summary.ignoredSuBars > 0) details.push(`${summary.ignoredSuBars} SU Bars ignored`);
+        if (summary.skippedInvoiceSent > 0) details.push(`${summary.skippedInvoiceSent} invoice sent`);
+        if (summary.unmatched > 0) details.push(`${summary.unmatched} not found`);
+        if (summary.invalidTotal > 0) details.push(`${summary.invalidTotal} missing/non-numeric total`);
+
+        if (summary.updated > 0) {
+          const plural = summary.updated === 1 ? 'event' : 'events';
+          const preview = summary.updatedNames.slice(0, 3).join(', ') + (summary.updatedNames.length > 3 ? '...' : '');
+          const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
+          showToast(`Updated charge on ${summary.updated} ${plural}: ${preview}${suffix}.`, 6000);
+        } else {
+          const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
+          showToast(`Sync complete: no event charges needed updating${suffix}.`, 5000);
+        }
+
+        return summary;
+      } catch (err) {
+        console.error('Spreadsheet sync failed:', err);
+        showToast(`Spreadsheet sync failed: ${err.message}`, 6000);
+        return null;
+      } finally {
+        isSyncingSpreadsheet = false;
+        if (syncSpreadsheetBtn) syncSpreadsheetBtn.disabled = false;
+        if (syncSpreadsheetBtnText) syncSpreadsheetBtnText.textContent = 'Sync';
+      }
+    }
+
+    if (syncSpreadsheetBtn) {
+      syncSpreadsheetBtn.addEventListener('click', () => {
+        syncEventsFromSpreadsheet();
+      });
+    }
   </script>
 </body>
 </html>
