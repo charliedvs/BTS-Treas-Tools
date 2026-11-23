@@ -1256,6 +1256,12 @@
       border-color: var(--input-focus);
     }
 
+    input[type="date"]:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      background-color: var(--surface-light);
+    }
+
     .date-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1666,12 +1672,19 @@
           <input type="number" id="eventCharge" step="0.01" min="0" required placeholder="0.00">
         </div>
 
+        <div style="margin-bottom: 10px;">
+          <label class="checkbox-label" style="font-size: 0.84rem;">
+            <input type="checkbox" id="oneDayEventChk">
+            This is a one-day event
+          </label>
+        </div>
+
         <div class="date-row">
           <div class="form-group">
-            <label for="startDate">Start Date</label>
+            <label for="startDate" id="startDateLabel">Start Date</label>
             <input type="date" id="startDate" required>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="endDateGroup">
             <label for="endDate">End Date</label>
             <input type="date" id="endDate" required>
           </div>
@@ -4346,6 +4359,44 @@
       });
     }
 
+    const oneDayEventChk = document.getElementById('oneDayEventChk');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const startDateLabel = document.getElementById('startDateLabel');
+    const endDateGroup = document.getElementById('endDateGroup');
+
+    /** Sync End Date field state and label when "This is a one-day event" is toggled or Start Date changes. */
+    function syncOneDayEventState() {
+      if (!oneDayEventChk || !startDateInput || !endDateInput) return;
+      const isOneDay = oneDayEventChk.checked;
+      if (isOneDay) {
+        if (!startDateInput.value && endDateInput.value) {
+          startDateInput.value = endDateInput.value;
+        }
+        endDateInput.value = startDateInput.value;
+        endDateInput.disabled = true;
+        if (startDateLabel) startDateLabel.textContent = 'Event Date';
+        if (endDateGroup) endDateGroup.style.opacity = '0.55';
+      } else {
+        endDateInput.disabled = false;
+        if (startDateLabel) startDateLabel.textContent = 'Start Date';
+        if (endDateGroup) endDateGroup.style.opacity = '';
+      }
+    }
+
+    if (oneDayEventChk) {
+      oneDayEventChk.addEventListener('change', syncOneDayEventState);
+    }
+    if (startDateInput) {
+      const mirrorStartToEnd = () => {
+        if (oneDayEventChk && oneDayEventChk.checked && endDateInput) {
+          endDateInput.value = startDateInput.value;
+        }
+      };
+      startDateInput.addEventListener('input', mirrorStartToEnd);
+      startDateInput.addEventListener('change', mirrorStartToEnd);
+    }
+
     function openModal() {
       editingEventId = null;
       lastAutoFilledContact = '';
@@ -4353,6 +4404,8 @@
       submitEventBtn.textContent = 'Save Event';
       eventForm.reset();
       document.getElementById('contactName').value = '';
+      if (oneDayEventChk) oneDayEventChk.checked = false;
+      syncOneDayEventState();
       if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'none';
       if (saveExternalClientChk) saveExternalClientChk.checked = false;
       clientCodeHint.textContent = '';
@@ -4374,6 +4427,10 @@
       document.getElementById('startDate').value = ev.startDate || '';
       document.getElementById('endDate').value = ev.endDate || '';
       document.getElementById('invoiceSent').checked = !!ev.invoiceSent;
+      if (oneDayEventChk) {
+        oneDayEventChk.checked = Boolean(ev.startDate && (!ev.endDate || ev.startDate === ev.endDate));
+      }
+      syncOneDayEventState();
       if (saveExternalClientChk) saveExternalClientChk.checked = false;
 
       updateClientCodeHint(false);
@@ -4387,6 +4444,8 @@
       lastAutoFilledContact = '';
       eventForm.reset();
       document.getElementById('contactName').value = '';
+      if (oneDayEventChk) oneDayEventChk.checked = false;
+      syncOneDayEventState();
       if (saveExternalClientWrap) saveExternalClientWrap.style.display = 'none';
       if (saveExternalClientChk) saveExternalClientChk.checked = false;
       clientCodeHint.textContent = '';
@@ -4416,6 +4475,10 @@
       e.preventDefault();
       const submittedClientName = document.getElementById('clientName').value.trim();
       const submittedContactName = document.getElementById('contactName').value.trim();
+      const submittedStartDate = document.getElementById('startDate').value;
+      const submittedEndDate = (oneDayEventChk && oneDayEventChk.checked)
+        ? submittedStartDate
+        : document.getElementById('endDate').value;
 
       if (editingEventId) {
         const target = events.find((item) => item.id === editingEventId);
@@ -4424,8 +4487,8 @@
           target.clientName = submittedClientName;
           target.contactName = submittedContactName;
           target.charge = document.getElementById('eventCharge').value;
-          target.startDate = document.getElementById('startDate').value;
-          target.endDate = document.getElementById('endDate').value;
+          target.startDate = submittedStartDate;
+          target.endDate = submittedEndDate;
           target.invoiceSent = document.getElementById('invoiceSent').checked;
         }
       } else {
@@ -4435,8 +4498,8 @@
           clientName: submittedClientName,
           contactName: submittedContactName,
           charge: document.getElementById('eventCharge').value,
-          startDate: document.getElementById('startDate').value,
-          endDate: document.getElementById('endDate').value,
+          startDate: submittedStartDate,
+          endDate: submittedEndDate,
           invoiceSent: document.getElementById('invoiceSent').checked,
           createdAt: new Date().toISOString()
         };
