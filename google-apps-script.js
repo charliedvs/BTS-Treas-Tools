@@ -342,8 +342,10 @@ function extractSpreadsheetId(input) {
 function normalizeHeaderText(val) {
   if (val === null || val === undefined) return '';
   return String(val)
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/[\r\n\t\u00a0]+/g, ' ')
     .replace(/\s+/g, ' ')
+    .replace(/^["'“”]+|["'“”]+$/g, '')
     .trim()
     .toLowerCase();
 }
@@ -351,7 +353,8 @@ function normalizeHeaderText(val) {
 function stripHeaderDecorations(norm) {
   return String(norm || '')
     .replace(/\s*\([\s\S]*?\)\s*/g, ' ')
-    .replace(/[£$€:*#\-–—]+/g, ' ')
+    .replace(/\s*\[[\s\S]*?\]\s*/g, ' ')
+    .replace(/[£$€:*#\-–—.+/,\\]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -362,42 +365,43 @@ function classifyHeaderCell(val) {
   var clean = stripHeaderDecorations(raw);
 
   var eventScore = 0;
-  if (raw === 'event name') eventScore = 4;
-  else if (clean === 'event name') eventScore = 3;
+  if (raw === 'event name') eventScore = 40;
+  else if (clean === 'event name') eventScore = 35;
   else if (
     clean === 'event' ||
     clean === 'event title' ||
     clean === 'name of event' ||
-    clean === 'event / show' ||
+    clean === 'event show' ||
     clean === 'show name' ||
     clean === 'production name' ||
     clean === 'booking name' ||
     clean === 'event description'
   ) {
-    eventScore = 2;
+    eventScore = 20;
   }
 
   var clientScore = 0;
-  if (raw === 'client') clientScore = 4;
-  else if (clean === 'client' || clean === 'client name') clientScore = 3;
+  if (raw === 'client') clientScore = 40;
+  else if (clean === 'client' || clean === 'client name') clientScore = 35;
   else if (
-    clean === 'client / society' ||
-    clean === 'society / client' ||
-    clean === 'client / soc' ||
-    clean === 'client / dept' ||
+    clean === 'client society' ||
+    clean === 'society client' ||
+    clean === 'client soc' ||
+    clean === 'client dept' ||
     clean === 'society' ||
-    clean === 'club / society' ||
+    clean === 'club society' ||
     clean === 'customer' ||
     clean === 'organisation' ||
     clean === 'organization'
   ) {
-    clientScore = 2;
+    clientScore = 20;
   }
 
   var totalScore = 0;
-  if (raw === 'total') totalScore = 4;
-  else if (clean === 'total') totalScore = 3;
-  else if (!/sub[\s\-]?total/.test(raw)) {
+  if (raw === 'total') totalScore = 40;
+  else if (clean === 'total') totalScore = 35;
+  else if (raw === 'totals' || clean === 'totals') totalScore = 30;
+  else if (!/\bsub[\s\-]?totals?\b/.test(raw) && !/\bsub[\s\-]?totals?\b/.test(clean) && !/\bdiscount\b/.test(clean)) {
     if (
       clean === 'total cost' ||
       clean === 'total charge' ||
@@ -406,15 +410,19 @@ function classifyHeaderCell(val) {
       clean === 'event total' ||
       clean === 'invoice total' ||
       clean === 'grand total' ||
+      clean === 'final total' ||
       clean === 'total due' ||
       clean === 'net total' ||
       clean === 'gross total' ||
-      clean === 'total ex vat' ||
-      clean === 'total exc vat' ||
-      clean === 'total inc vat' ||
-      clean === 'total cost to client'
+      clean === 'total quote' ||
+      clean === 'quote total' ||
+      clean === 'total to client'
     ) {
-      totalScore = 2;
+      totalScore = 25;
+    } else if (/\btotals?\b/.test(clean)) {
+      totalScore = 20;
+    } else if (clean === 'event charge' || clean === 'final charge') {
+      totalScore = 15;
     }
   }
 
@@ -463,7 +471,7 @@ function buildOverviewHeaderDiagnostics(values) {
         .replace(/[\r\n\t\u00a0]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-      if (text && nonEmpty.length < 15) nonEmpty.push(text);
+      if (text && nonEmpty.length < 60) nonEmpty.push(text);
       var scores = classifyHeaderCell(row[c]);
       if (scores.event > 0 && eCol === -1) eCol = c;
       if (scores.client > 0 && cCol === -1) cCol = c;
@@ -641,11 +649,11 @@ function handleSyncOverviewSheet(payload) {
         detailParts.push('Missing ' + missing.join(' & ') + ' near row ' + diag.bestPartial.rowNumber);
       }
       if (diag.bestPartial.cells.length > 0) {
-        detailParts.push('Row ' + diag.bestPartial.rowNumber + ' headers seen: [' + diag.bestPartial.cells.slice(0, 8).join(' | ') + ']');
+        detailParts.push('Row ' + diag.bestPartial.rowNumber + ' headers seen: [' + diag.bestPartial.cells.join(' | ') + ']');
       }
     } else if (diag.previewRows.length > 0) {
       var firstRow = diag.previewRows[0];
-      detailParts.push('Row ' + firstRow.rowNumber + ' cells seen: [' + firstRow.cells.slice(0, 8).join(' | ') + ']');
+      detailParts.push('Row ' + firstRow.rowNumber + ' cells seen: [' + firstRow.cells.join(' | ') + ']');
     }
     return {
       success: false,

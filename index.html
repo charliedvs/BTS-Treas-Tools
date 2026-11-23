@@ -1362,7 +1362,8 @@
       box-shadow: var(--modal-shadow);
       z-index: 2000;
       display: none;
-      max-width: 380px;
+      max-width: min(480px, calc(100vw - 32px));
+      word-break: break-word;
     }
 
     .toast.show {
